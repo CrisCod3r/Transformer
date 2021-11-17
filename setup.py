@@ -8,11 +8,10 @@ import shutil
 import random
 import math
 
-os.chdir("/home/cristobal/Escritorio")
 
 # Create the necesary folders.
 # If "data" directory already exists, it is overwritten
-data_folder = "./prueba/"
+data_folder = "./data/"
 os.makedirs(data_folder,exist_ok=True)
 os.makedirs(data_folder + "tmp/",exist_ok=True)
 os.chdir(data_folder + "tmp/")
@@ -130,6 +129,6 @@ print("train/benign now has", len(os.listdir(train_benign_path)), "images")
 print("train/malignant now has", len(os.listdir(train_malignant_path)), "images")  
 print("test/benign now has", len(os.listdir(test_benign_path)), "images")
 print("test/malignant now has", len(os.listdir(test_malignant_path)), "images")  
-print("Everything done!")
+print("Setup succesful")
 
 
