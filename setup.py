@@ -3,6 +3,7 @@
 import os
 import zipfile as zf
 from tqdm import tqdm
+from PIL import Image
 import shutil
 import random
 import math
@@ -56,34 +57,48 @@ os.rmdir(img_dir + 'IDC_regular_ps50_idx5/')
 dirs = os.listdir(img_dir)   
 train_data_benign_list = []
 # The dataset has imbalaced data. In this case we fix this issue 
-# by under-sampling (removing benign samples)
+# by under-sampling (removing benign samples). Also, there are
+# samples which are not 50 x 50 pixels, so we must discard them
+useful_samples = 0
 for fold in tqdm(dirs, desc= 'Collecting files...'):
 
+    class_0_folder = img_dir + str(fold) + "/0/"
+    class_1_folder = img_dir + str(fold) + "/1/"
+
    # Class 0 samples
-    for img in os.listdir(img_dir + str(fold) + "/0/" ):
-        train_data_benign_list.append(img)
+    for img_name in os.listdir(class_0_folder):
+        img = Image.open(class_0_folder + img_name)
+        if img.size [0] == 50 and img.size [1] == 50:
+            train_data_benign_list.append(img_name)
 
     # Class 1 samples are moved directly
-    for img in os.listdir(img_dir + str(fold) + "/1/" ):
-        shutil.move(img_dir + str(fold) + "/1/" + img , train_malignant_path)
+    for img_name in os.listdir(class_1_folder):
+
+        img = Image.open(class_1_folder + img_name)
+        if img.size [0] == 50 and img.size [1] == 50:
+            shutil.move(class_1_folder + img_name , train_malignant_path)
+            useful_samples += 1
 
 # Benign train samples are randomly selected
 random.shuffle(train_data_benign_list) 
-train_data_benign_list = train_data_benign_list [:78786]
+train_data_benign_list = train_data_benign_list [:useful_samples]
 
 # A dictionary is built with the train samples as keys for efficiency
 train_data_benign = {}.fromkeys(train_data_benign_list)
+del train_data_benign_list
 
 for fold in tqdm(dirs, desc= 'Moving files...'):
 
-    for img in os.listdir(img_dir + str(fold) + "/0/" ):
+    class_0_folder = img_dir + str(fold) + "/0/"
+    for img in os.listdir(class_0_folder):
 
         try:
             train_data_benign[img]
-            shutil.move(img_dir + str(fold) + "/0/" + img , train_benign_path)
+            shutil.move(class_0_folder + img , train_benign_path)
             del train_data_benign[img]
         except:
-            os.remove(img_dir + str(fold) + "/0/" + img)
+            os.remove(class_0_folder + img)
+
 
 # Generation of test samples is done randomly            
 test_data_benign = os.listdir(train_benign_path)
