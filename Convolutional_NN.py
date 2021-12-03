@@ -16,7 +16,7 @@ class LeNet5(nn.Module):
 
         self.conv3 = nn.Conv2d(in_channels = 16, out_channels = 120, kernel_size = 5,stride = 1)
 
-        self.full1 = nn.Linear(in_features = 120, out_features = 84)
+        self.full1 = nn.Linear(in_features = 120 * 5 * 5, out_features = 84)
         self.full2 = nn.Linear(in_features = 84, out_features = 2)
     
     def forward(self,x):
@@ -30,7 +30,6 @@ class LeNet5(nn.Module):
 
         x = self.conv3(x)
         x = F.relu(x)
-
         # Flatten tensor
         x = flatten(x , 1)
 
@@ -68,6 +67,7 @@ class CNN(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
+    
 
 
 # My own Convolutional Neural Network. For testing other parameters and atchitectures
