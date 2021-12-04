@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from dataset import BreastCancerDataset
 from models import *
 
-import torch
 from torch import Generator, optim, device
 from torch.utils.data import Dataset, DataLoader, random_split
 
@@ -47,6 +46,7 @@ def train_cnn(model,train_loader,num_epochs, learning_rate):
 
 def accuracy(model, test_loader):
 
+    model.eval()
     classes = ('benign','malignant')
     with torch.no_grad():
         n_correct = 0
@@ -118,6 +118,10 @@ elif net == 'efficientnet':
     model = models.efficientnet_b7().to(device)
     model.train()
 
+elif net == "gdnet":
+    model = GDNet().to(device)
+    model.train()
+
 elif net == 'inception':
     model = models.inception_v3().to(device)
     model.train()
@@ -135,7 +139,7 @@ elif net == 'vgg':
     model.train()
 else:
     print("Error, unrecognized neural network")
-    print("Available models:", ', '.join(['alexnet', 'densenet', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg']))
+    print("Available models:", ', '.join(['alexnet', 'densenet', 'efficientnet', "gdnet", 'inception', 'lenet', 'resnet', 'vgg']))
     sys.exit(-1)
 
 
