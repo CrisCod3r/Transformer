@@ -94,7 +94,7 @@ parser.add_argument('-e', '--epochs', dest= 'num_epochs', default=1, type=int, h
 parser.add_argument('-b', '--batch_size',dest = 'batch_size', default= 4, type=int, help= 'Batch size')
 
 # Learning rate
-parser.add_argument('-lr', '--learning_rate', dest = 'learning_rate', default = 0.1, type=float, help= 'Start learning rate')
+parser.add_argument('-lr', '--learning_rate', dest = 'learning_rate', default = 1e-4, type=float, help= 'Start learning rate')
 
 # File in which the hyper parameters will be saved
 parser.add_argument('-f', '--file', dest = 'file', default = 'results.pth', type=str, help= 'File where hyper parameters will be saved')
@@ -131,7 +131,7 @@ elif net == 'resnet':
     model.train()
 
 elif net == 'vgg':
-    model = models.vgg16().to(device)
+    model = VGG16().to(device)
     model.train()
 else:
     print("Error, unrecognized neural network")
