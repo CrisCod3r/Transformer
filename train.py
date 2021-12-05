@@ -5,7 +5,9 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
 from dataset import BreastCancerDataset
+
 from models import *
+from densenet import *
 
 from torch import Generator, optim, device
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -115,7 +117,7 @@ elif net == 'densenet':
     model.train()
 
 elif net == 'efficientnet':
-    model = models.efficientnet_b7().to(device)
+    model = densenet121(pretrained=False).to(device)
     model.train()
 
 elif net == "gdnet":

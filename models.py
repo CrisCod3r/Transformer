@@ -227,7 +227,7 @@ class VGG16(nn.Module):
 
 # My own Convolutional Neural Network. For testing other parameters and atchitectures
 class GDNet(nn.Module):
-    def __init__(self):
+    """    def __init__(self):
         super(GDNet,self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels = 3, out_channels = 6, kernel_size = 5)
@@ -248,5 +248,42 @@ class GDNet(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        return x
+        return x"""
+    def __init__(self):
+        super(GDNet,self).__init__()
 
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=4)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32,kernel_size=4)
+
+        self.full1 = nn.Linear(in_features= 32 * 2 * 2, out_features=64)
+        self.full2 = nn.Linear(in_features=64, out_features=2)
+
+        self.maxpool = nn.MaxPool2d(kernel_size=2)
+        self.maxpool_s2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.dropout = nn.Dropout(0.25)
+    
+
+    def forward(self,x):
+
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.maxpool(x)
+        x = self.maxpool(x)
+        x = self.dropout(x)
+
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = self.maxpool(x)
+        x = self.maxpool_s2(x)
+        x = self.dropout(x)
+
+        x = x.view(-1, 32 * 2 * 2)
+
+        x = self.full1(x)
+        x = F.relu(x)
+        
+        x = self.full2(x)
+        x = F.sigmoid(x)
+
+        return x
