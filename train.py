@@ -6,13 +6,18 @@ import matplotlib.pyplot as plt
 
 from dataset import BreastCancerDataset
 
-from models import *
+from models.AlexNet import *
+from models.EfficientNet import *
+from models.GoogLeNet import *
+from models.LeNet5 import *
+from models.ResNet import *
+from models.VGG import *
+
 from densenet import *
 
 from torch import Generator, optim, device
 from torch.utils.data import Dataset, DataLoader, random_split
 
-from dataset import BreastCancerDataset
 
 import argparse as arg
 import sys
@@ -117,7 +122,7 @@ elif net == 'densenet':
     model.train()
 
 elif net == 'efficientnet':
-    model = densenet121(pretrained=False).to(device)
+    model = EfficientNet("b7", num_classes=2).to(device)
     model.train()
 
 elif net == "gdnet":
@@ -125,7 +130,7 @@ elif net == "gdnet":
     model.train()
 
 elif net == 'inception':
-    model = models.inception_v3().to(device)
+    model = InceptionNet().to(device)
     model.train()
 
 elif net == 'lenet':
@@ -133,11 +138,11 @@ elif net == 'lenet':
     model.train()
 
 elif net == 'resnet':
-    model = models.resnet18().to(device)
+    model = ResNet50().to(device)
     model.train()
 
 elif net == 'vgg':
-    model = VGG16().to(device)
+    model = VGG(vgg_type="VGG16").to(device)
     model.train()
 else:
     print("Error, unrecognized neural network")
@@ -151,7 +156,8 @@ print("Loading datasets...")
 training_data = BreastCancerDataset(args.path)
 
 # A manual seed is introduced to allow the results to be reproduced, remove this parameter if you don't want this to happen
-training_data, val_data = random_split(training_data, lengths= [122400, 13600], generator=Generator().manual_seed(6))
+#lengths= [122400, 13600]
+training_data, val_data = random_split(training_data, lengths= [122400, 13600], generator=Generator().manual_seed(0))
 print("Done")
 
 train_loader = DataLoader(dataset = training_data, batch_size = args.batch_size, shuffle = True)
