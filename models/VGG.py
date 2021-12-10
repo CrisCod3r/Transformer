@@ -61,7 +61,7 @@ class VGG(nn.Module):
         self.conv_layers = self.create_conv_layers(VGG_types[vgg_type])
 
         self.fullblock = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
+            nn.Linear(512, 4096),
             nn.ReLU(),
 
             # Added dropout to combat overfitting

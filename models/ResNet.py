@@ -145,11 +145,3 @@ def ResNet101(img_channel=3, num_classes=2):
 def ResNet152(img_channel=3, num_classes=2):
     return ResNet(ConvLayerBlock, [3, 8, 36, 3], img_channel, num_classes)
 
-
-def test():
-    net = ResNet50(img_channel=3, num_classes=2)
-    y = net(torch.randn(4, 3, 224, 224)).to("cpu")
-    print(y.size())
-
-
-test()

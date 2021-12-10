@@ -130,7 +130,7 @@ elif net == "gdnet":
     model.train()
 
 elif net == 'inception':
-    model = InceptionNet().to(device)
+    model = GoogLeNet().to(device)
     model.train()
 
 elif net == 'lenet':

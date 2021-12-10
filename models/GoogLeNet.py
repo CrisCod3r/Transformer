@@ -31,7 +31,7 @@ class GoogLeNet(nn.Module):
         self.inception5a = InceptionBlock(832, 256, 160, 320, 32, 128, 128)
         self.inception5b = InceptionBlock(832, 384, 192, 384, 48, 128, 128)
 
-        self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
+        self.avgpool = nn.AvgPool2d(kernel_size=2, stride=1)
         self.dropout = nn.Dropout(p=0.4)
 
         # Classification layer
@@ -74,7 +74,7 @@ class GoogLeNet(nn.Module):
 
         x = self.inception5a(x)
         x = self.inception5b(x)
-
+        
         x = self.avgpool(x)
 
         # Flatten tensor to enter linear layer
@@ -85,7 +85,8 @@ class GoogLeNet(nn.Module):
         x = self.full(x)
 
         if self.use_auxiliar and self.training:
-            return aux1, aux2, x
+            #return aux1, aux2, x
+            return x
         else:
             return x
 
@@ -130,25 +131,22 @@ class InceptionBlock(nn.Module):
             [self.branch1(x), self.branch2(x), self.branch3(x), self.branch4(x)], 1
         )
 
-# Auxiliar classifier proposed, only used in traning
+# Auxiliar classifier proposed, only used in traning, channels and kernel size have been modified
 class AuxiliarClassifier(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(AuxiliarClassifier, self).__init__()
         self.dropout = nn.Dropout(p=0.7)
-        self.pool = nn.AvgPool2d(kernel_size=5, stride=3)
+        self.pool = nn.AvgPool2d(kernel_size=4, stride=3)
         self.conv = ConvolutionalBlock(in_channels, 128, kernel_size=1)
-        self.full1 = nn.Linear(2048, 1024)
+        self.full1 = nn.Linear(128, 1024)
         self.full2 = nn.Linear(1024, num_classes)
 
     def forward(self, x):
 
         x = self.pool(x)
-
         x = self.conv(x)
-
         # Flatten tensor to enter linear layer
         x = flatten(x , 1)
-
         x = self.full1(x)
         x = F.relu(x)
 
