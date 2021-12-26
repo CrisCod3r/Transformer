@@ -14,7 +14,6 @@ from models.GoogLeNet import *
 from models.LeNet5 import *
 from models.ResNet import *
 from models.VGG import *
-from densenet import *
 
 from train import *
 
@@ -53,7 +52,7 @@ def main():
     # Device setup
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    net_models = {'alexnet':AlexNet(), 'densenet':models.densenet161(),'efficientnet':EfficientNet("b7", num_classes=2),
+    net_models = {'alexnet':AlexNet(),'efficientnet':EfficientNet("b7", num_classes=2),
     'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19")}
 
     try:
@@ -63,7 +62,7 @@ def main():
 
     except:
         print("Error, unrecognized model")
-        print("Available models:", ', '.join(['alexnet', 'densenet', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg']))
+        print("Available models:", ', '.join(['alexnet', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg']))
         sys.exit(-1)
 
     optimizers = {"sgd": torch.optim.SGD,"adam":torch.optim.Adam, "adadelta": torch.optim.Adadelta, "adagrad": torch.optim.Adagrad}
