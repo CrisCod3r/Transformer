@@ -195,8 +195,8 @@ class WeightedNet(nn.Module):
         self.weightedClassifier4.weight = self.accuracies[3] / total_sum
         self.weightedClassifier5.weight = self.accuracies[4] / total_sum
 
-    def pesos(self):
-        print("Pesos: ",self.weightedClassifier1.weight,self.weightedClassifier2.weight,self.weightedClassifier3.weight,self.weightedClassifier4.weight,self.weightedClassifier5.weight)
+    def weights(self):
+        return [self.weightedClassifier1.weight,self.weightedClassifier2.weight,self.weightedClassifier3.weight,self.weightedClassifier4.weight,self.weightedClassifier5.weight]
 
 # An InceptionBlock consists on reducing the input channels for the 3x3 kernel and the 5x5 kernel and concatenating the outputs
 # of the four branches

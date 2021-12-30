@@ -43,6 +43,9 @@ parser.add_argument('-b', '--batch_size',dest = 'batch_size', default= 8, type=i
 # Optimizer
 parser.add_argument('-o', '--optimizer', dest = 'optimizer',default="adam", type=str,help= 'Learning rate optimizer')
 
+# Resume training from checkpoint
+parser.add_argument('-r', '--resume', action= 'store_true',dest = 'resume',default=False,help= 'Resume training from checkpoint')
+
 # Test the neural network (requiers the -n parameter)
 parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=False,help= 'Test the neural network (requiers the -n parameter)')
 
@@ -63,7 +66,16 @@ def set_up_training(device, args):
     try:
         # Model
         print('Building model..')
-        model = net_models[model].to(device)
+        model = net_models[model]
+        best_accuracy = 0
+
+        if args.resume:
+            state_dict = torch.load('./pretrained/' + model.name + '.pth')
+            model.load_state_dict( state_dict['model'] )
+            best_accuracy = state_dict['accuracy']
+            print("Loaded checkpoint, best accuracy obtained previously is: %.3f" % best_accuracy)
+
+        model.to(device)
 
     except:
         print("Error, unrecognized model")
@@ -124,7 +136,7 @@ def set_up_training(device, args):
     # Test data loader
     testloader = DataLoader(dataset = test_data, batch_size = args.batch_size, shuffle = False)
 
-    return criterion, model, optimizer, trainloader, testloader
+    return best_accuracy, criterion, model, optimizer, trainloader, testloader
 
 
 
@@ -180,10 +192,11 @@ def setup_test(device,args):
 
 
 
-def train_model(criterion, device, model, optimizer, trainloader, testloader, num_epochs):
+def train_model(best_accuracy, criterion, device, model, optimizer, trainloader, testloader, num_epochs):
     """
     Trains the neural network
     Args:
+        best_accuracy: Best accuracy obtained (0 if checkpoint has not been loaded)
         criterion: Loss criterion
         device: Device used ('cuda' or 'cpu')
         model: Neural Network
@@ -195,15 +208,7 @@ def train_model(criterion, device, model, optimizer, trainloader, testloader, nu
 
     train_loss_list, test_loss_list = [], []
     train_acc_list, test_acc_list = [], []
-    best_accuracy = 0
     classes = ('benign','malignant')
-
-    # Before training, we check if there is already a best accuracy stored in a .pth file
-    try:
-        best_accuracy = torch.load("pretrained/" + model.name + ".pth")["acc"]
-        print("Best accuracy obtained previously: %.3f" % best_accuracy)
-    except:
-        pass
 
         
     for epoch in range(num_epochs):
@@ -220,12 +225,12 @@ def train_model(criterion, device, model, optimizer, trainloader, testloader, nu
             best_accuracy = test_acc    
 
     # If couldn't plot correctly
-    if not plot(list(range(1, args.num_epochs + 1)), [ (train_loss_list, 'Train loss'), (test_loss_list, 'Test loss') ], "Epochs", "Loss", name = "Loss_"+ model.name):
+    if not plot(list(range(1, num_epochs + 1)), [ (train_loss_list, 'Train loss'), (test_loss_list, 'Test loss') ], "Epochs", "Loss", name = "Loss_"+ model.name):
 
         print("Train loss:\n", ','.join(train_loss_list))
         print("Test loss:\n", ','.join(test_loss_list))
 
-    if not plot(list(range(1, args.num_epochs + 1)),[ (train_acc_list, 'Train accuracy'), (test_acc_list, 'Test accuracy') ] , "Epochs", "Accuracy (%)", name = "Accuracy_"+ model.name):
+    if not plot(list(range(1, num_epochs + 1)),[ (train_acc_list, 'Train accuracy'), (test_acc_list, 'Test accuracy') ] , "Epochs", "Accuracy (%)", name = "Accuracy_"+ model.name):
         print("Train accuracy:\n", ','.join(train_acc_list))
         print("Test accuracy:\n", ','.join(test_acc_list))
     
@@ -263,8 +268,8 @@ def main():
     args = parser.parse_args()
 
     if not args.test:
-        criterion, model, optimizer, trainloader, testloader = set_up_training(device,args)
-        train_model(criterion, device, model, optimizer, trainloader, testloader, args.num_epochs)
+        best_accuracy, criterion, model, optimizer, trainloader, testloader = set_up_training(device,args)
+        train_model(best_accuracy, criterion, device, model, optimizer, trainloader, testloader, args.num_epochs)
     else:
         model, testloader = setup_test(device,args)
         test_model(device, model, testloader)

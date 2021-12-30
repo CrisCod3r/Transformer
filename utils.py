@@ -15,7 +15,7 @@ begin_time = last_time
 # term_width = int(term_width)
 
 # Comment this next linei f you want to see the output in the terminal
-term_width = 80
+term_width = 100
 
 def progress_bar(current, total, msg=None):
     global last_time, begin_time

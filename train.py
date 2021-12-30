@@ -100,7 +100,17 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
     acc = 100.*correct/total
     if acc > best_acc:
         print('Saving checkpoint...')
-        state = {
+        if model.name == "WeightedNet":
+
+            state = {
+                'model': model.state_dict(),
+                'accuracy': acc,
+                'class_accuracy': [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))],
+                'epoch': epoch,
+                'weights': model.weights()
+            }
+        else:
+            state = {
             'model': model.state_dict(),
             'accuracy': acc,
             'class_accuracy': [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))],
