@@ -4,11 +4,10 @@ from torch import flatten
 import torch.nn.functional as F
 
 class GoogLeNet(nn.Module):
-    def __init__(self, use_auxiliar=True, num_classes=2):
+    def __init__(self,  num_classes=2):
         super(GoogLeNet, self).__init__()
 
-        assert use_auxiliar == True or use_auxiliar == False
-        self.use_auxiliar = use_auxiliar
+        self.name = "InceptionNet"
 
         self.conv1 = ConvolutionalBlock(in_channels=3, out_channels=64, kernel_size=7, stride=2, padding=3)
 
@@ -19,7 +18,7 @@ class GoogLeNet(nn.Module):
         # Parameter order: in_channels, out_1x1, red_3x3, out_3x3, red_5x5, out_5x5, out_1x1pool
         self.inception3a = InceptionBlock(192, 64, 96, 128, 16, 32, 32)
         self.inception3b = InceptionBlock(256, 128, 128, 192, 32, 96, 64)
-        self.maxpool3 = nn.MaxPool2d(kernel_size=(3, 3), stride=2, padding=1)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         self.inception4a = InceptionBlock(480, 192, 96, 208, 16, 48, 64)
         self.inception4b = InceptionBlock(512, 160, 112, 224, 24, 64, 64)
@@ -37,75 +36,41 @@ class GoogLeNet(nn.Module):
         # Classification layer
         self.full = nn.Linear(1024, num_classes)
 
-        if self.use_auxiliar:
-            self.aux1 = AuxiliarClassifier(512, num_classes)
-            self.aux2 = AuxiliarClassifier(528, num_classes)
-        else:
-            self.aux1 = self.aux2 = None
-
     def forward(self, x):
-        print(x.shape)
         x = self.conv1(x)
-        print(x.shape)
         x = self.maxpool1(x)
-        print(x.shape)
         x = self.conv2(x)
-        print(x.shape)
+
         x = self.maxpool2(x)
-        print(x.shape)
 
         x = self.inception3a(x)
-        print(x.shape)
         x = self.inception3b(x)
-        print(x.shape)
+
         x = self.maxpool3(x)
 
         x = self.inception4a(x)
-        print(x.shape)
-
-        # Auxiliary Softmax classifier 1
-        if self.use_auxiliar and self.training:
-            aux1 = self.aux1(x)
-            print("Clasificador")
-            print(aux1.shape)
-            #print(F.softmax(aux1,dim=1))
-            print("Fin Class")
-
         x = self.inception4b(x)
-        print(x.shape)
         x = self.inception4c(x)
-        print(x.shape)
         x = self.inception4d(x)
-        print(x.shape)
-
-        # Auxiliary Softmax classifier 2
-        if self.use_auxiliar and self.training:
-            aux2 = self.aux2(x)
-
         x = self.inception4e(x)
-        print(x.shape)
+
         x = self.maxpool4(x)
 
         x = self.inception5a(x)
-        print(x.shape)
         x = self.inception5b(x)
-        print(x.shape)
+
         x = self.avgpool(x)
-        print(x.shape)
+
         # Flatten tensor to enter linear layer
         x = flatten(x , 1)
-        print(x.shape)
+
         # Dropout, to combat overfitting
         x = self.dropout(x)
-        print(x.shape)
+
         x = self.full(x)
-        print(x.shape)
-        print("FIN")
-        if self.use_auxiliar and self.training:
-            #return aux1, aux2, x
-            return x
-        else:
-            return x
+
+        
+        return x
 
 # An InceptionBlock consists on reducing the input channels for the 3x3 kernel and the 5x5 kernel and concatenating the outputs
 # of the four branches
@@ -148,30 +113,6 @@ class InceptionBlock(nn.Module):
             [self.branch1(x), self.branch2(x), self.branch3(x), self.branch4(x)], 1
         )
 
-# Auxiliar classifier proposed, only used in traning, channels and kernel size have been modified
-class AuxiliarClassifier(nn.Module):
-    def __init__(self, in_channels, num_classes):
-        super(AuxiliarClassifier, self).__init__()
-        self.dropout = nn.Dropout(p=0.7)
-        self.pool = nn.AvgPool2d(kernel_size=4, stride=3)
-        self.conv = ConvolutionalBlock(in_channels, 128, kernel_size=1)
-        self.full1 = nn.Linear(128, 1024)
-        self.full2 = nn.Linear(1024, num_classes)
-
-    def forward(self, x):
-
-        x = self.pool(x)
-        x = self.conv(x)
-        # Flatten tensor to enter linear layer
-        x = flatten(x , 1)
-        x = self.full1(x)
-        x = F.relu(x)
-
-        x = self.dropout(x)
-
-        x = self.full2(x)
-
-        return x
 
 # Classic convolutional blocks (grouped in a class)
 class ConvolutionalBlock(nn.Module):

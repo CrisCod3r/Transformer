@@ -236,7 +236,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     
     print("Best accuracy: ", best_accuracy)
 
-    interval = interval95( best_accuracy / 100, len(test_data))
+    interval = interval95( best_accuracy / 100, len(testloader))
     print("Confidence interval (95%):")
     print("[%.3f, %.3f]" % best_accuracy - interval[0], best_accuracy + interval[1] )
 
@@ -248,7 +248,7 @@ def test_model(device, model, testloader):
     test_acc, class_accuracy = final_test(classes, device, model, testloader)
 
 
-    interval = interval95( best_accuracy / 100, len(test_data))
+    interval = interval95( best_accuracy / 100, len(testloader))
 
     print("Accuracy: ", test_acc)
     print("Confidence interval (95%):")
