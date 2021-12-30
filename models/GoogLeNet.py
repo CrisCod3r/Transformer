@@ -44,46 +44,63 @@ class GoogLeNet(nn.Module):
             self.aux1 = self.aux2 = None
 
     def forward(self, x):
-
+        print(x.shape)
         x = self.conv1(x)
+        print(x.shape)
         x = self.maxpool1(x)
+        print(x.shape)
         x = self.conv2(x)
-
+        print(x.shape)
         x = self.maxpool2(x)
+        print(x.shape)
 
         x = self.inception3a(x)
+        print(x.shape)
         x = self.inception3b(x)
+        print(x.shape)
         x = self.maxpool3(x)
 
         x = self.inception4a(x)
+        print(x.shape)
 
         # Auxiliary Softmax classifier 1
         if self.use_auxiliar and self.training:
             aux1 = self.aux1(x)
+            print("Clasificador")
+            print(aux1.shape)
+            #print(F.softmax(aux1,dim=1))
+            print("Fin Class")
 
         x = self.inception4b(x)
+        print(x.shape)
         x = self.inception4c(x)
+        print(x.shape)
         x = self.inception4d(x)
+        print(x.shape)
 
         # Auxiliary Softmax classifier 2
         if self.use_auxiliar and self.training:
             aux2 = self.aux2(x)
 
         x = self.inception4e(x)
+        print(x.shape)
         x = self.maxpool4(x)
 
         x = self.inception5a(x)
+        print(x.shape)
         x = self.inception5b(x)
-        
+        print(x.shape)
         x = self.avgpool(x)
-
+        print(x.shape)
         # Flatten tensor to enter linear layer
         x = flatten(x , 1)
-
+        print(x.shape)
         # Dropout, to combat overfitting
         x = self.dropout(x)
+        print(x.shape)
         x = self.full(x)
-
+        print(x.shape)
+        print("FIN")
         if self.use_auxiliar and self.training:
             #return aux1, aux2, x
             return x

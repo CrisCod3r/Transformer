@@ -8,6 +8,7 @@ class AlexNet(nn.Module):
     def __init__(self):
         super(AlexNet, self).__init__()
 
+        self.name = "AlexNet"
         # Convolutional layers (RGB input, 3 input channels)        
         self.conv1 = nn.Conv2d(in_channels=3, out_channels= 96, kernel_size= 11, stride=4, padding=0 )
         self.conv2 = nn.Conv2d(in_channels=96, out_channels=256, kernel_size=5, stride=1, padding= 2)
@@ -46,7 +47,7 @@ class AlexNet(nn.Module):
         x = F.relu(x)
 
         x = self.maxpool2(x)
-
+        
         # Flatten tensor to enter linear layer
         x = flatten(x , 1)
 

@@ -52,6 +52,7 @@ class ResNet(nn.Module):
     def __init__(self, convlayerblock, layers, image_channels, num_classes):
         super(ResNet, self).__init__()
 
+        self.name = "ResNet"
         self.in_channels = 64
         self.conv1 = nn.Conv2d(image_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.batchnorm = nn.BatchNorm2d(64)

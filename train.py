@@ -1,5 +1,6 @@
 from utils import progress_bar
-
+import torch
+import os
 # Training function
 def train(criterion, device, epoch, model, optimizer, trainloader):
     """
@@ -20,16 +21,16 @@ def train(criterion, device, epoch, model, optimizer, trainloader):
     correct = 0
     total = 0
 
-    for batch_idx, (inputs, targets) in enumerate(trainloader):
+    for batch_idx, (inputs, labels) in enumerate(trainloader):
 
-        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, labels = inputs.to(device), labels.to(device)
 
         # Reset gradient
         optimizer.zero_grad()
 
         # Forward pass
         outputs = model(inputs)
-        loss = criterion(outputs, targets)
+        loss = criterion(outputs, labels)
 
         # Backward and optimize
         loss.backward()
@@ -40,9 +41,11 @@ def train(criterion, device, epoch, model, optimizer, trainloader):
 
         # Get predicted output
         _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
-
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
+        
+        if model.name == "WeightedNet":
+            model.update_weights(labels)
         # Update progress bar
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -111,3 +114,40 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
 
     # Return this epoch's test loss and test accuracy
     return test_loss, acc
+
+
+def final_test(classes, device, model, testloader):
+
+    #Set model to evaluation
+    model.eval()
+
+    correct = 0
+    total = 0
+
+    n_class_correct = [0 for i in range(len(classes))]
+    n_class_samples = [0 for i in range(len(classes))]
+
+    with torch.no_grad():
+
+        for batch_idx, (inputs, labels) in enumerate(testloader):
+
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            # Get predicted output
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+            
+            # Accuracy per class
+            for i in range(len(labels)):
+
+                label = labels[i]
+                pred = predicted[i]
+
+                if (label == pred):
+                    n_class_correct[label] += 1
+
+                n_class_samples[label] += 1
+    
+    return 100.*correct/total, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]

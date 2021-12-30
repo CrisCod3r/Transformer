@@ -7,9 +7,12 @@ from torch.utils.data.dataset import Dataset
 
 
 class BreastCancerDataset(Dataset):
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, transforms = transforms.ToTensor()):
         """
         Dataset created from images where the class is embedded in the file name
+        Args:
+            data_dir: Path to the images
+            transform: List of transformations to apply to the images
         """
         if not path.isdir(data_dir):
             raise OSError ('Directory not found')
@@ -19,9 +22,9 @@ class BreastCancerDataset(Dataset):
 
         # Number of images
         self.data_len = len(self.image_list)
-
-        # Function to transform images to tensors
-        self.transform = transforms.ToTensor()
+            
+        # Function to transform images
+        self.transform = transforms
 
     def __getitem__(self,index):
         
@@ -31,7 +34,7 @@ class BreastCancerDataset(Dataset):
         # Open image
         img = Image.open(img_path)
 
-        # Transfrom to tensor
+        # Apply transforms 
         tensor = self.transform(img).float()
 
         # Get image label from the file name

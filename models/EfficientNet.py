@@ -37,6 +37,7 @@ class ConvolutionalBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding, groups=1):
         super(ConvolutionalBlock, self).__init__()
 
+
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, groups=groups, bias=False)
 
         # Batch Normalization 
@@ -183,7 +184,7 @@ class EfficientNet(nn.Module):
     def __init__(self, version, num_classes=2):
 
         super(EfficientNet, self).__init__()
-
+        self.name = "EfficientNet" + version
         # We need to calculate the factors depending on the version
         width_factor, depth_factor, dropout_rate = self.calculate_factors(version)
 

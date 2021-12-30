@@ -4,6 +4,8 @@ import os
 import math
 import matplotlib.pyplot as plt
 
+from torch import mean
+
 TOTAL_BAR_LENGTH = 65
 last_time = time.time()
 begin_time = last_time
@@ -80,17 +82,17 @@ def format_time(seconds):
     # Maximum units to show is 2
     max_units = 1
     if days > 0:
-        f += str(days) + 'D '
+        f += str(days) + 'D'
         max_units += 1
 
     if hours > 0 and max_units <= 2:
-        f += str(hours) + 'h '
+        f += str(hours) + 'h'
         max_units += 1
     if minutes > 0 and max_units <= 2:
-        f += str(minutes) + 'm '
+        f += str(minutes) + 'm'
         max_units += 1
     if real_seconds > 0 and max_units <= 2:
-        f += str(real_seconds) + 's '
+        f += str(real_seconds) + 's'
         max_units += 1
     if millis > 0 and max_units <= 2:
         f += str(millis) + 'ms'
@@ -139,3 +141,29 @@ def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
 
     # If saved correctly, return True
     return True
+
+
+def get_mean_and_std(dataloader):
+    """
+    Computes mean and standard deviation of a dataset given its loader
+    Args:
+        dataloader: Dataset loader (could be any)
+    """
+
+
+    channels_sum, channels_squared_sum, num_batches = 0, 0, 0
+
+    for data, _ in dataloader:
+        # Computes mean over batch, height and width, not over the channels
+        channels_sum += mean(data, dim=[0,2,3])
+        channels_squared_sum += mean(data**2, dim=[0,2,3])
+        num_batches += 1
+    
+    data_mean = channels_sum / num_batches
+
+    # Var[X] = E[X**2] - E[X] ** 2
+    # Standard deviation
+    std = (channels_squared_sum / num_batches  - data_mean**2) ** 0.5
+
+    return data_mean, std
+    
