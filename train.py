@@ -1,6 +1,7 @@
 from utils import progress_bar
 import torch
 import os
+
 # Training function
 def train(criterion, device, epoch, model, optimizer, trainloader):
     """

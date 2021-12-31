@@ -208,6 +208,9 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
 
     train_loss_list, test_loss_list = [], []
     train_acc_list, test_acc_list = [], []
+
+    # Weights in case the model is WeightedNet
+    weights_list = []
     classes = ('benign','malignant')
 
         
@@ -216,6 +219,9 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         train_loss, train_acc = train(criterion, device, epoch, model, optimizer, trainloader)
         train_loss_list.append(train_loss)
         train_acc_list.append(train_acc)
+
+        if model.name == "WeightedNet":
+            weights_list.append( model.weights())
 
         test_loss, test_acc = test(best_accuracy, classes, criterion, device, epoch, model, optimizer, testloader)
         test_loss_list.append(test_loss)
@@ -234,6 +240,14 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         print("Train accuracy:\n", ','.join(train_acc_list))
         print("Test accuracy:\n", ','.join(test_acc_list))
     
+    weights_list = list(map(list,zip(*weights_list)))
+
+    if model.name == "WeightedNet" and not plot(list(range(1, num_epochs + 1)), [ (weights_list[0], "Clasificador1" ), (weights_list[1], "Clasificador2" ), (weights_list[2], "Clasificador3" ),
+        (weights_list[3], "Clasificador4" ), (weights_list[4], "Clasificador5" )], "Epochs", "Weights", name= "Weights_" + model.name)
+        print("Weigths:")
+        print(weights_list)
+
+
     print("Best accuracy: ", best_accuracy)
 
     interval = interval95( best_accuracy / 100, len(testloader))

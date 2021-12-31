@@ -128,7 +128,9 @@ class WeightedNet(nn.Module):
         self.weightedClassifier5 = WeightedClassifier(in_features=512 * 1 * 1, initial_weight = 1 / 5, num_classes=2)
 
         # MaxPool has no trainable paramaters, and thus, we can share them between blocks
-        self.maxpool = nn.MaxPool2d(kernel_size= 2)
+        # self.maxpool = nn.MaxPool2d(kernel_size= 2)
+        # AvgPool has no trainable paramaters, and thus, we can share them between blocks
+        self.avgpool = nn.AvgPool2d(kernel_size=2)
 
         self.accuracies = [0, 0, 0, 0, 0]
 
@@ -139,7 +141,7 @@ class WeightedNet(nn.Module):
         x = self.inception1_B1(x)
         x = self.inception2_B1(x)
 
-        x = self.maxpool(x)
+        x = self.avgpool(x)
 
         # Get the estimated output up until this point, also, flatten tensor to enter linear layer
         self.outputs.append( self.weightedClassifier1(flatten(x , 1)) )
@@ -147,7 +149,7 @@ class WeightedNet(nn.Module):
         x = self.inception1_B2(x)
         x = self.inception2_B2(x)
 
-        x = self.maxpool(x)
+        x = self.avgpool(x)
 
         # Get the estimated output up until this point, also, flatten tensor to enter linear layer
         self.outputs.append( self.weightedClassifier2(flatten(x , 1)) )
@@ -156,7 +158,7 @@ class WeightedNet(nn.Module):
         x = self.inception2_B3(x)
         x = self.inception3_B3(x)
 
-        x = self.maxpool(x)
+        x = self.avgpool(x)
 
         # Get the estimated output up until this point, also, flatten tensor to enter linear layer
         self.outputs.append( self.weightedClassifier3(flatten(x , 1)) )
@@ -165,7 +167,7 @@ class WeightedNet(nn.Module):
         x = self.inception2_B4(x)
         x = self.inception3_B4(x)
 
-        x = self.maxpool(x)
+        x = self.avgpool(x)
 
         # Get the estimated output up until this point, also, flatten tensor to enter linear layer
         self.outputs.append( self.weightedClassifier4(flatten(x , 1)) )
@@ -174,7 +176,7 @@ class WeightedNet(nn.Module):
         x = self.inception2_B5(x)
         x = self.inception3_B5(x)
 
-        x = self.maxpool(x)
+        x = self.avgpool(x)
 
         # Get the estimated output up until this point, also, flatten tensor to enter linear layer
         self.outputs.append( self.weightedClassifier5(flatten(x , 1)) )

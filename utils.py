@@ -2,6 +2,9 @@ import sys
 import time
 import os
 import math
+
+from scipy.interpolate import make_interp_spline
+from numpy import linspace as linspace
 import matplotlib.pyplot as plt
 
 from torch import mean
@@ -128,12 +131,17 @@ def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
         y_label = Label for the y axis
         name: Name of the file where the plot will be saved
     """
+    new_x_axis = linspace(min(x_axis), max(x_axis), 200)
+
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     
     for y in y_axis:
 
-        plt.plot(x_axis, y[0], label= y[1])
+        spl = make_interp_spline(x_axis, y[0], k=3)
+        y_smooth = spl(new_x_axis)
+
+        plt.plot(new_x_axis, y_smooth, label= y[1])
 
     plt.legend()
     plt.savefig(name)
