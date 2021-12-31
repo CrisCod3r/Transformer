@@ -52,7 +52,7 @@ def train(criterion, device, epoch, model, optimizer, trainloader):
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
     # Return this epoch's loss and train accuracy
-    return train_loss, 100.*correct/total
+    return train_loss / (batch_idx+1), 100.*correct/total
 
 
 def test(best_acc, classes, criterion, device, epoch, model, optimizer, testloader):
@@ -124,7 +124,7 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
 
 
     # Return this epoch's test loss and test accuracy
-    return test_loss, acc
+    return test_loss / (batch_idx+1), acc
 
 
 def final_test(classes, device, model, testloader):

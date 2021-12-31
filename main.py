@@ -210,7 +210,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     train_acc_list, test_acc_list = [], []
 
     # Weights in case the model is WeightedNet
-    weights_list = []
+    weights_list = [0.2,0.2,0.2,0.2,0.2]
     classes = ('benign','malignant')
 
         
@@ -242,8 +242,8 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     
     weights_list = list(map(list,zip(*weights_list)))
 
-    if model.name == "WeightedNet" and not plot(list(range(1, num_epochs + 1)), [ (weights_list[0], "Clasificador1" ), (weights_list[1], "Clasificador2" ), (weights_list[2], "Clasificador3" ),
-        (weights_list[3], "Clasificador4" ), (weights_list[4], "Clasificador5" )], "Epochs", "Weights", name= "Weights_" + model.name)
+    if model.name == "WeightedNet" and not plot(list(range(0, num_epochs + 1)), [ (weights_list[0], "Clasificador1" ), (weights_list[1], "Clasificador2" ), (weights_list[2], "Clasificador3" ),
+        (weights_list[3], "Clasificador4" ), (weights_list[4], "Clasificador5" )], "Epochs", "Weights", name= "Weights_" + model.name):
         print("Weigths:")
         print(weights_list)
 
@@ -252,7 +252,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
 
     interval = interval95( best_accuracy / 100, len(testloader))
     print("Confidence interval (95%):")
-    print("[%.3f, %.3f]" % best_accuracy - interval[0], best_accuracy + interval[1] )
+    print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
 
 def test_model(device, model, testloader):
 
@@ -266,7 +266,7 @@ def test_model(device, model, testloader):
 
     print("Accuracy: ", test_acc)
     print("Confidence interval (95%):")
-    print("[%.3f, %.3f]" % best_accuracy - interval[0], best_accuracy + interval[1] )
+    print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
 
     for idx in range(len(classes)):
         print("Accuracy of class " + classes[idx] + ": %.3f" % class_accuracy[idx])
