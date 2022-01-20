@@ -130,6 +130,7 @@ def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
         x_label = Label for the x axis
         y_label = Label for the y axis
         name: Name of the file where the plot will be saved
+
     """
     new_x_axis = linspace(min(x_axis), max(x_axis), 200)
 
@@ -137,8 +138,10 @@ def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
     plt.ylabel(y_label)
     
     for y in y_axis:
-
+        
+        # There must be at least 4 values in x_axis and in y[0] for this to work
         spl = make_interp_spline(x_axis, y[0], k=3)
+        
         y_smooth = spl(new_x_axis)
 
         plt.plot(new_x_axis, y_smooth, label= y[1])
