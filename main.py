@@ -1,5 +1,4 @@
 import torch
-import torch.backends.cudnn as cudnn
 
 import torchvision
 import torchvision.models as models
@@ -210,9 +209,8 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     train_acc_list, test_acc_list = [], []
 
     # Weights in case the model is WeightedNet
-    weights_list = [0.2,0.2,0.2,0.2,0.2]
+    weights_list = [model.weights()]
     classes = ('benign','malignant')
-
         
     for epoch in range(num_epochs):
 

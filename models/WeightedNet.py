@@ -12,114 +12,36 @@ class WeightedNet(nn.Module):
         
         self.name = "WeightedNet"
         # ----------=| ExtractionBlock 1 |=-------------
-        # Parameter order: in_channels, out_1x1, red_3x3, out_3x3, red_5x5, out_5x5, out_1x1pool
-        self.inception1_B1 = nn.Sequential(
+        self.inception1_B1 = ConvolutionalBlock(in_channels=3,out_channels=64, kernel_size=1)
+        
 
-            InceptionBlock(in_channels, 24, 6, 8, 6, 8, 24),  # Output channels = 64 (24 + 8 + 8 + 24)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(64)
-        )
-
-        self.inception2_B1 = nn.Sequential(
-
-            InceptionBlock(64, 24, 6, 8, 6, 8, 24), # Output channels = 64
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(64)
-        )
+        self.inception2_B1 = ConvolutionalBlock(64,64, kernel_size=1)
 
         # ----------=| ExtractionBlock 2 |=-------------
-        self.inception1_B2 = nn.Sequential(
+        self.inception1_B2 = ConvolutionalBlock(64,128, kernel_size=1)
 
-            InceptionBlock(64, 48, 8, 16, 8, 16, 48),  # Output channels = 128 (48 + 16 + 16 + 48)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(128)
-        )
-
-        self.inception2_B2 = nn.Sequential(
-
-            InceptionBlock(128, 48, 8, 16, 8, 16, 48),  # Output channels = 128 (48 + 16 + 16 + 48)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(128)
-        )
+        self.inception2_B2 = ConvolutionalBlock(128,128, kernel_size=1)
 
         # ----------=| ExtractionBlock 3 |=-------------
-        self.inception1_B3 = nn.Sequential(
+        self.inception1_B3 = ConvolutionalBlock(128,256, kernel_size=1)
 
-            InceptionBlock(128, 96, 24, 32, 24, 32, 96),  # Output channels = 256 (96 + 32 + 32 + 96)
+        self.inception2_B3 = ConvolutionalBlock(256,256, kernel_size=1)
 
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(256)
-        )
-
-        self.inception2_B3 = nn.Sequential(
-
-            InceptionBlock(256, 96, 24, 32, 24, 32, 96),  # Output channels = 256 (96 + 32 + 32 + 96)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(256)
-        )
-
-        self.inception3_B3 = nn.Sequential(
-
-            InceptionBlock(256, 96, 24, 32, 24, 32, 96),  # Output channels = 256 (96 + 32 + 32 + 96)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(256)
-        )
+        self.inception3_B3 = ConvolutionalBlock(256,256, kernel_size=1)
 
         # ----------=| ExtractionBlock 4 |=-------------
-        self.inception1_B4 = nn.Sequential(
+        self.inception1_B4 = ConvolutionalBlock(256,512, kernel_size=1)
 
-            InceptionBlock(256, 192, 48, 64, 48, 64, 192),  # Output channels = 512 (192 + 64 + 64 + 192)
+        self.inception2_B4 = ConvolutionalBlock(512,512, kernel_size=1)
 
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(512)
-        )
-
-        self.inception2_B4 = nn.Sequential(
-
-            InceptionBlock(512, 192, 48, 64, 48, 64, 192),  # Output channels = 512 (192 + 64 + 64 + 192)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(512)
-        )
-
-        self.inception3_B4 = nn.Sequential(
-
-            InceptionBlock(512, 192, 48, 64, 48, 64, 192),  # Output channels = 512 (192 + 64 + 64 + 192)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(512)
-        )
+        self.inception3_B4 = ConvolutionalBlock(512,512, kernel_size=1)
 
         # ----------=| ExtractionBlock 5 |=-------------
-        self.inception1_B5 = nn.Sequential(
+        self.inception1_B5 = ConvolutionalBlock(512,512, kernel_size=1)
 
-            InceptionBlock(512, 192, 48, 64, 48, 64, 192),  # Output channels = 512 (192 + 64 + 64 + 192)
+        self.inception2_B5 = ConvolutionalBlock(512,512, kernel_size=1)
 
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(512)
-        )
-
-        self.inception2_B5 = nn.Sequential(
-
-            InceptionBlock(512, 192, 48, 64, 48, 64, 192),  # Output channels = 512 (192 + 64 + 64 + 192)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(512)
-        )
-
-        self.inception3_B5 = nn.Sequential(
-
-            InceptionBlock(512, 192, 48, 64, 48, 64, 192),  # Output channels = 512 (192 + 64 + 64 + 192)
-
-            # BatchNorm to combat overfitting
-            nn.BatchNorm2d(512)
-        )
+        self.inception3_B5 = ConvolutionalBlock(512,512, kernel_size=1)
 
         self.weightedClassifier1 = WeightedClassifier(in_features=64 * 25 * 25, initial_weight = 1 / 5, num_classes=2)
         self.weightedClassifier2 = WeightedClassifier(in_features=128 * 12 * 12, initial_weight = 1 / 5, num_classes=2)
@@ -250,7 +172,7 @@ class ConvolutionalBlock(nn.Module):
 
         x = self.conv(x)
         x = self.batchnorm(x)
-        x = F.relu(x)
+        x = F.relu(x, inplace=True)
 
         return x
 
