@@ -123,8 +123,8 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
         torch.save(state, './pretrained/' + model.name + '.pth')
 
 
-    # Return this epoch's test loss and test accuracy
-    return test_loss / (batch_idx+1), acc
+    # Return this epoch's test loss, test accuracy and class accuracy
+    return test_loss / (batch_idx+1), acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
 
 
 def final_test(classes, device, model, testloader):

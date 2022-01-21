@@ -223,7 +223,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         if model.name == "WeightedNet":
             weights_list.append( model.weights())
 
-        test_loss, test_acc = test(best_accuracy, classes, criterion, device, epoch, model, optimizer, testloader)
+        test_loss, test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, model, optimizer, testloader)
         test_loss_list.append(test_loss)
         test_acc_list.append(test_acc)   
 
@@ -250,8 +250,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
             weights.append( ( weights_list[i], "Clasificador " + str(i+1) ) )
 
         plot( list(range(0, num_epochs + 1)),weights, "Epochs", "Weights", name= "Weights_" + model.name)
-        print("Weigths:")
-        print(weights_list)
+
 
 
     print("Best accuracy: ", best_accuracy)
@@ -259,6 +258,9 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     interval = interval95( best_accuracy / 100, len(testloader))
     print("Confidence interval (95%):")
     print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
+
+        for idx in range(len(classes)):
+        print("Accuracy of class " + classes[idx] + ": %.3f" % class_accuracy[idx])
 
 def test_model(device, model, testloader):
 
