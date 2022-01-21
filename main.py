@@ -209,7 +209,9 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     train_acc_list, test_acc_list = [], []
 
     # Weights in case the model is WeightedNet
-    weights_list = [model.weights()]
+    if model.name == "WeightedNet":
+        weights_list = [model.weights()]
+
     classes = ('benign','malignant')
         
     for epoch in range(num_epochs):
@@ -238,10 +240,16 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         print("Train accuracy:\n", ','.join(train_acc_list))
         print("Test accuracy:\n", ','.join(test_acc_list))
     
-    weights_list = list(map(list,zip(*weights_list)))
+    
 
-    if model.name == "WeightedNet" and not plot(list(range(0, num_epochs + 1)), [ (weights_list[0], "Clasificador1" ), (weights_list[1], "Clasificador2" ), (weights_list[2], "Clasificador3" ),
-        (weights_list[3], "Clasificador4" ), (weights_list[4], "Clasificador5" )], "Epochs", "Weights", name= "Weights_" + model.name):
+    if model.name == "WeightedNet":
+        weights = []
+        weights_list = list(map(list,zip(*weights_list)))
+
+        for i in range(0,len(weights_list)):
+            weights.append( ( weights_list[i], "Clasificador " + str(i+1) ) )
+
+        plot( list(range(0, num_epochs + 1)),weights, "Epochs", "Weights", name= "Weights_" + model.name)
         print("Weigths:")
         print(weights_list)
 
