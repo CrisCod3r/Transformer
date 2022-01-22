@@ -8,12 +8,15 @@ import torchvision.transforms as transforms
 from dataset import BreastCancerDataset
 
 from models.AlexNet import *
+from models.DenseNet import *
+from models.DLA import *
 from models.EfficientNet import *
 from models.GoogLeNet import *
 from models.LeNet5 import *
 from models.ResNet import *
 from models.VGG import *
 from models.WeightedNet import WeightedNet
+
 from train import *
 
 from utils import interval95, plot, get_mean_and_std
@@ -59,7 +62,7 @@ def set_up_training(device, args):
 
     model = args.net.lower()
 
-    net_models = {'alexnet':AlexNet(),'efficientnet':EfficientNet("b7", num_classes=2),
+    net_models = {'alexnet':AlexNet(),'densenet':DenseNet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
     'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
 
     try:
@@ -78,7 +81,7 @@ def set_up_training(device, args):
 
     except:
         print("Error, unrecognized model")
-        print("Available models:", ', '.join(['alexnet', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
+        print("Available models:", ', '.join(['alexnet','densenet','dla', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
         sys.exit(-1)
 
     optimizers = {"sgd": torch.optim.SGD,"adam":torch.optim.Adam, "adadelta": torch.optim.Adadelta, "adagrad": torch.optim.Adagrad}
@@ -149,7 +152,7 @@ def setup_test(device,args):
     """
     model = args.net.lower()
     
-    net_models = {'alexnet':AlexNet(),'efficientnet':EfficientNet("b7", num_classes=2),
+    net_models = {'alexnet':AlexNet(),'densenet':DenseNet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
     'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
 
     try:
@@ -161,7 +164,7 @@ def setup_test(device,args):
 
     except KeyError:
         print("Error, unrecognized model")
-        print("Available models:", ', '.join(['alexnet', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
+        print("Available models:", ', '.join(['alexnet', 'densenet','dla','efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
         sys.exit(-1)
     except Exception as e:
         print(e)
@@ -259,7 +262,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     print("Confidence interval (95%):")
     print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
 
-        for idx in range(len(classes)):
+    for idx in range(len(classes)):
         print("Accuracy of class " + classes[idx] + ": %.3f" % class_accuracy[idx])
 
 def test_model(device, model, testloader):

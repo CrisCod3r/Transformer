@@ -10,10 +10,9 @@ class BasicBlock(nn.Module):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(
             in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
+
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -22,10 +21,18 @@ class BasicBlock(nn.Module):
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(self.expansion*planes)
             )
+        
+        self.batchnorm = nn.BatchNorm2d(planes)
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+
+        out = self.conv1(x)
+        out = self.batchnorm(out)
+        out = F.relu(out)
+
+        out = self.conv2(out)
+        out = self.batchnorm(out)
+
         out += self.shortcut(x)
         out = F.relu(out)
         return out
@@ -37,12 +44,16 @@ class Root(nn.Module):
         self.conv = nn.Conv2d(
             in_channels, out_channels, kernel_size,
             stride=1, padding=(kernel_size - 1) // 2, bias=False)
-        self.bn = nn.BatchNorm2d(out_channels)
+        self.batchnorm = nn.BatchNorm2d(out_channels)
 
     def forward(self, xs):
         x = torch.cat(xs, 1)
-        out = F.relu(self.bn(self.conv(x)))
-        return out
+
+        x = self.conv(x)
+        x = self.batchnorm(x)
+        x = F.relu(x)
+
+        return x
 
 
 class Tree(nn.Module):
@@ -80,6 +91,8 @@ class Tree(nn.Module):
 class DLA(nn.Module):
     def __init__(self, block=BasicBlock, num_classes=10):
         super(DLA, self).__init__()
+
+        self.name = "DLA"
         self.base = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(16),
