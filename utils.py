@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from torch import mean
 
-TOTAL_BAR_LENGTH = 65
+TOTAL_BAR_LENGTH = 151
 last_time = time.time()
 begin_time = last_time
 
@@ -178,3 +178,11 @@ def get_mean_and_std(dataloader):
 
     return data_mean, std
     
+def count_parameters(model):
+    """
+    Returns the amount of trainable parameters in a model
+    Args:
+        model: NN model
+    """
+
+    return sum(param.numel() for param in model.parameters() if param.requires_grad)

@@ -83,7 +83,8 @@ class DenseNet(nn.Module):
         return out
 
 def DenseNet121():
-    return DenseNet(Bottleneck, [6,12,24,16], growth_rate=32)
+    # Original [6,12,24,16]
+    return DenseNet(Bottleneck, [2,4,6,4], growth_rate=32)
 
 def DenseNet169():
     return DenseNet(Bottleneck, [6,12,32,32], growth_rate=32)

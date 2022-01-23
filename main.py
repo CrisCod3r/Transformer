@@ -103,14 +103,22 @@ def set_up_training(device, args):
     # Train transformations
     train_transform = transforms.Compose([
 
+        # Allow random image flips
+        transforms.RandomRotation(degrees = (-90, 90) ),
+
+        # Allow random horizontal flips (data augmentation)
+        transforms.RandomHorizontalFlip(p = 0.25),
+
+        # Allow random vertical flips (data augmentation)
+        transforms.RandomVerticalFlip(p = 0.05),
+
         # Transform images to tensors
         transforms.ToTensor(),
 
         # Normalize train dataset with its mean and standard deviation
-        transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428)),
+        transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
 
-        # Allow random flips (data augmentation)
-        transforms.RandomHorizontalFlip()
+        
     ])
 
     test_transform = transforms.Compose([
@@ -211,6 +219,8 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     train_loss_list, test_loss_list = [], []
     train_acc_list, test_acc_list = [], []
 
+    best_class_accuracy = []
+
     # Weights in case the model is WeightedNet
     if model.name == "WeightedNet":
         weights_list = [model.weights()]
@@ -231,7 +241,8 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         test_acc_list.append(test_acc)   
 
         if test_acc > best_accuracy:
-            best_accuracy = test_acc    
+            best_accuracy = test_acc 
+            best_class_accuracy = class_accuracy   
 
     # If couldn't plot correctly
     if not plot(list(range(1, num_epochs + 1)), [ (train_loss_list, 'Train loss'), (test_loss_list, 'Test loss') ], "Epochs", "Loss", name = "Loss_"+ model.name):
@@ -263,7 +274,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
 
     for idx in range(len(classes)):
-        print("Accuracy of class " + classes[idx] + ": %.3f" % class_accuracy[idx])
+        print("Accuracy of class " + classes[idx] + ": %.3f" % best_class_accuracy[idx])
 
 def test_model(device, model, testloader):
 

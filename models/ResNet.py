@@ -142,6 +142,7 @@ def ResNet34():
 
 
 def ResNet50():
+    # Original [3, 4, 6, 3]
     return ResNet(Bottleneck, [3, 4, 6, 3])
 
 
