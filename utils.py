@@ -7,7 +7,12 @@ from scipy.interpolate import make_interp_spline
 from numpy import linspace as linspace
 import matplotlib.pyplot as plt
 
+import torch
 from torch import mean
+
+from sklearn.metrics import confusion_matrix
+import seaborn as sn
+import pandas as pd
 
 TOTAL_BAR_LENGTH = 151
 last_time = time.time()
@@ -186,3 +191,55 @@ def count_parameters(model):
     """
 
     return sum(param.numel() for param in model.parameters() if param.requires_grad)
+
+def get_all_predictions(model, dataloader):
+
+    with torch.no_grad():
+
+        predictions = torch.tensor([])
+        for batch_idx, (inputs, labels) in enumerate(dataloader):
+
+            # Get predicted output
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+
+            predictions = torch.cat(
+                (predicted,predictions),
+                dim=0
+            )
+
+    return predictions
+    
+def plot_confusion_matrix(model, dataloader):
+
+    with torch.no_grad():
+        y_pred = []
+        y_true = []
+
+        for batch_idx, (inputs, labels) in enumerate(dataloader):
+            
+            # Get predicted output
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+
+            # Accumulate predictions
+            y_pred.extend([predicted.item()]) 
+            
+            # Accumulate correct labels
+            labels = labels.data
+            y_true.extend([labels.item()]) 
+            
+
+        # Classes
+        classes = ('Benigno', 'Maligno')
+        
+        # Build confusion matrix
+        cf_matrix = confusion_matrix(y_true, y_pred)
+        dataFrame_cf = pd.DataFrame(cf_matrix/sum(cf_matrix) *10, index = [i for i in classes],
+                            columns = [i for i in classes])
+        plt.figure(figsize = (12,7))
+        sn.heatmap(dataFrame_cf, annot=True)
+        plt.savefig('Confussion_Matrix_' + model.name + '.png')
+    
+    return
+
