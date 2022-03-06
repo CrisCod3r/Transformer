@@ -19,7 +19,7 @@ from models.WeightedNet import WeightedNet
 
 from train import *
 
-from utils import interval95, plot, get_mean_and_std
+from utils import interval95, plot, get_mean_and_std, plot_confusion_matrix
 
 from torch import optim, device, Generator
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -266,7 +266,16 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         plot( list(range(0, num_epochs + 1)),weights, "Epochs", "Weights", name= "Weights_" + model.name)
 
 
+    
 
+    # Plot confussion matrix when the model had the best accuracy
+    del model
+    model = args.net.lower()
+    model = net_models[model]
+    model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
+    model.to(device)
+
+    plot_confusion_matrix(model,testloader,device)
     print("Best accuracy: ", best_accuracy)
 
     interval = interval95( best_accuracy / 100, len(testloader))

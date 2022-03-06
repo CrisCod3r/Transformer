@@ -4,6 +4,8 @@ import os
 import math
 
 from scipy.interpolate import make_interp_spline
+
+import numpy as np
 from numpy import linspace as linspace
 import matplotlib.pyplot as plt
 
@@ -192,54 +194,52 @@ def count_parameters(model):
 
     return sum(param.numel() for param in model.parameters() if param.requires_grad)
 
-def get_all_predictions(model, dataloader):
-
-    with torch.no_grad():
-
-        predictions = torch.tensor([])
-        for batch_idx, (inputs, labels) in enumerate(dataloader):
-
-            # Get predicted output
-            outputs = model(inputs)
-            _, predicted = outputs.max(1)
-
-            predictions = torch.cat(
-                (predicted,predictions),
-                dim=0
-            )
-
-    return predictions
     
-def plot_confusion_matrix(model, dataloader):
+def plot_confusion_matrix(model, dataloader,device):
 
     with torch.no_grad():
         y_pred = []
         y_true = []
 
         for batch_idx, (inputs, labels) in enumerate(dataloader):
-            
+            inputs, labels = inputs.to(device), labels.to(device)
             # Get predicted output
             outputs = model(inputs)
             _, predicted = outputs.max(1)
 
             # Accumulate predictions
-            y_pred.extend([predicted.item()]) 
+            y_pred.extend(predicted.tolist()) 
             
             # Accumulate correct labels
             labels = labels.data
-            y_true.extend([labels.item()]) 
-            
+            y_true.extend(labels.tolist()) 
+        
 
-        # Classes
-        classes = ('Benigno', 'Maligno')
+
         
         # Build confusion matrix
         cf_matrix = confusion_matrix(y_true, y_pred)
-        dataFrame_cf = pd.DataFrame(cf_matrix/sum(cf_matrix) *10, index = [i for i in classes],
-                            columns = [i for i in classes])
-        plt.figure(figsize = (12,7))
-        sn.heatmap(dataFrame_cf, annot=True)
-        plt.savefig('Confussion_Matrix_' + model.name + '.png')
+
+        # Information that will appear in each cell
+        group_names = ['True Neg','False Pos','False Neg','True Pos']
+        group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
+        group_percentages = ["{0:.2%}".format(value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
+
+        labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
+        labels = np.asarray(labels).reshape(2,2)
+
+        ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues')
+        ax.set_title(model.name + " confussion matrix")
+        ax.set_xlabel('\nPredicted class')
+        ax.set_ylabel('Actual class ')
+
+        # Axis labels
+        ax.xaxis.set_ticklabels(['Benign','Malignant'])
+        ax.yaxis.set_ticklabels(['Benign','Malignant'])
+
+        fig = ax.get_figure()
+        fig.savefig('Confussion_Matrix_' + model.name + '.png',dpi=400)
+
     
     return
 
