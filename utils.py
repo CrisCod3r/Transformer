@@ -218,7 +218,7 @@ def plot_confusion_matrix(model, dataloader,device):
 
         
         # Build confusion matrix
-        cf_matrix = confusion_matrix(y_true, y_pred)
+        cf_matrix = confusion_matrix(y_pred, y_true)
 
         # Information that will appear in each cell
         group_names = ['True Neg','False Pos','False Neg','True Pos']
@@ -226,17 +226,19 @@ def plot_confusion_matrix(model, dataloader,device):
         group_percentages = ["{0:.2%}".format(value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
 
         labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
+        labels = labels[2:] + labels[:2]
+        
         labels = np.asarray(labels).reshape(2,2)
 
-        ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues')
+        ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues_r',cbar = False)
         ax.set_title(model.name + " confussion matrix")
-        ax.set_xlabel('\nPredicted class')
+        ax.set_xlabel('Predicted class')
         ax.set_ylabel('Actual class ')
 
         # Axis labels
         ax.xaxis.set_ticklabels(['Benign','Malignant'])
-        ax.yaxis.set_ticklabels(['Benign','Malignant'])
-
+        ax.yaxis.set_ticklabels(['Malignant','Benign'])
+        ax.set_ylim([0,2])
         fig = ax.get_figure()
         fig.savefig('Confussion_Matrix_' + model.name + '.png',dpi=400)
 

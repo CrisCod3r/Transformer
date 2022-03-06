@@ -14,7 +14,6 @@ def train(criterion, device, epoch, model, optimizer, scheduler,trainloader):
         trainloader: Train data
     """
     # Decay Learning Rate
-    scheduler.step()
     
     print('-----=| Epoch %d |=-----' % epoch)
 
@@ -56,6 +55,7 @@ def train(criterion, device, epoch, model, optimizer, scheduler,trainloader):
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
+    scheduler.step()
     # Return this epoch's loss and train accuracy
     return train_loss / (batch_idx+1), 100.*correct/total
 

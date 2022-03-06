@@ -84,15 +84,15 @@ def set_up_training(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-
-    model = args.net.lower()
+    global best_accuracy, model_name, model, optimizer, trainloader, testloader, scheduler
+    model_name = args.net.lower()
 
 
 
     try:
         # Model
         print('Building model..')
-        model = net_models[model]
+        model = net_models[model_name]
 
 
         if args.resume:
@@ -121,8 +121,8 @@ def set_up_training(args):
 
     # Update scheduler
     # scheduler = StepLR(optimizer, step_size = 5, gamma = 0.5)
-    # scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patiente = 5, verbose=True)
-    scheduler = ExponentialLR(optimizer, gamma = 0.5,verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patiente = 5, verbose=True)
+    #scheduler = ExponentialLR(optimizer, gamma = 0.5,verbose=True)
 
     # Train transformations
     train_transform = transforms.Compose([
@@ -229,7 +229,7 @@ def train_model(num_epochs):
     Args:
         num_epochs: Number of epochs
     """
-
+    global best_accuracy, model, model_name, trainloader, testloader, optimizer, scheduler
     train_loss_list, test_loss_list = [], []
     train_acc_list, test_acc_list = [], []
 
@@ -284,8 +284,7 @@ def train_model(num_epochs):
 
     # Plot confussion matrix when the model had the best accuracy
     del model
-    model = args.net.lower()
-    model = net_models[model]
+    model = net_models[model_name]
     model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
     model.to(device)
 
