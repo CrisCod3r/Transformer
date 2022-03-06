@@ -3,7 +3,7 @@ import torch
 import os
 
 # Training function
-def train(criterion, device, epoch, model, optimizer, trainloader):
+def train(criterion, device, epoch, model, optimizer, scheduler,trainloader):
     """
     Trains the network for 1 epoch
     Args:
@@ -13,6 +13,9 @@ def train(criterion, device, epoch, model, optimizer, trainloader):
         optimizer: Learning rate optimizer
         trainloader: Train data
     """
+    # Decay Learning Rate
+    scheduler.step()
+    
     print('-----=| Epoch %d |=-----' % epoch)
 
     # Set model to train
@@ -23,6 +26,8 @@ def train(criterion, device, epoch, model, optimizer, trainloader):
     total = 0
 
     for batch_idx, (inputs, labels) in enumerate(trainloader):
+
+
 
         inputs, labels = inputs.to(device), labels.to(device)
 

@@ -22,6 +22,7 @@ from train import *
 from utils import interval95, plot, get_mean_and_std, plot_confusion_matrix
 
 from torch import optim, device, Generator
+from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, ExponentialLR
 from torch.utils.data import Dataset, DataLoader, random_split
 
 import argparse as arg
@@ -52,7 +53,31 @@ parser.add_argument('-r', '--resume', action= 'store_true',dest = 'resume',defau
 parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=False,help= 'Test the neural network (requiers the -n parameter)')
 
 
-def set_up_training(device, args):
+
+# --------------- Global variables ---------------
+
+net_models = {'alexnet':AlexNet(),'densenet':DenseNet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
+'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
+
+optimizers = {"sgd": torch.optim.SGD,"adam":torch.optim.Adam, "adadelta": torch.optim.Adadelta, "adagrad": torch.optim.Adagrad}
+
+model_name = ""
+
+# Device setup
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Criterion
+criterion = torch.nn.CrossEntropyLoss()
+
+# Scheduler
+scheduler = None
+
+best_accuracy = 0
+trainloader, testloader = None, None
+model, optimizer = None,None
+
+# ---------------------------------------------
+def set_up_training(args):
     """
     Sets up all of the necessary variable for training
     Args:
@@ -62,14 +87,13 @@ def set_up_training(device, args):
 
     model = args.net.lower()
 
-    net_models = {'alexnet':AlexNet(),'densenet':DenseNet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
-    'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
+
 
     try:
         # Model
         print('Building model..')
         model = net_models[model]
-        best_accuracy = 0
+
 
         if args.resume:
             state_dict = torch.load('./pretrained/' + model.name + '.pth')
@@ -84,7 +108,6 @@ def set_up_training(device, args):
         print("Available models:", ', '.join(['alexnet','densenet','dla', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
         sys.exit(-1)
 
-    optimizers = {"sgd": torch.optim.SGD,"adam":torch.optim.Adam, "adadelta": torch.optim.Adadelta, "adagrad": torch.optim.Adagrad}
     optimizer = args.optimizer.lower()
 
     try:
@@ -96,9 +119,10 @@ def set_up_training(device, args):
         print("Available optimizers:", ', '.join(['sgd','adam','adadelta','adagrad']))
         sys.exit(-1)
 
-    
-    # Criterion
-    criterion = torch.nn.CrossEntropyLoss()
+    # Update scheduler
+    # scheduler = StepLR(optimizer, step_size = 5, gamma = 0.5)
+    # scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patiente = 5, verbose=True)
+    scheduler = ExponentialLR(optimizer, gamma = 0.5,verbose=True)
 
     # Train transformations
     train_transform = transforms.Compose([
@@ -146,12 +170,12 @@ def set_up_training(device, args):
     # Test data loader
     testloader = DataLoader(dataset = test_data, batch_size = args.batch_size, shuffle = False)
 
-    return best_accuracy, criterion, model, optimizer, trainloader, testloader
+    return 
 
 
 
 
-def setup_test(device,args):
+def setup_test(args):
     """
     Sets up all of the necessary variable for testing
     Args:
@@ -159,9 +183,6 @@ def setup_test(device,args):
         args: Arguments passed from the argument parser
     """
     model = args.net.lower()
-    
-    net_models = {'alexnet':AlexNet(),'densenet':DenseNet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
-    'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
 
     try:
         # Model
@@ -198,21 +219,14 @@ def setup_test(device,args):
     # Test data loader
     testloader = DataLoader(dataset = test_data, batch_size = args.batch_size, shuffle = False, transform = test_transform)
 
-    return model, testloader
+    return 
 
 
 
-def train_model(best_accuracy, criterion, device, model, optimizer, trainloader, testloader, num_epochs):
+def train_model(num_epochs):
     """
     Trains the neural network
     Args:
-        best_accuracy: Best accuracy obtained (0 if checkpoint has not been loaded)
-        criterion: Loss criterion
-        device: Device used ('cuda' or 'cpu')
-        model: Neural Network
-        optimizer: Learning rate optimizer
-        trainloader: Training data loader
-        testloaer: Test data loader
         num_epochs: Number of epochs
     """
 
@@ -229,7 +243,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
         
     for epoch in range(num_epochs):
 
-        train_loss, train_acc = train(criterion, device, epoch, model, optimizer, trainloader)
+        train_loss, train_acc = train(criterion, device, epoch, model, optimizer, scheduler,trainloader)
         train_loss_list.append(train_loss)
         train_acc_list.append(train_acc)
 
@@ -285,7 +299,7 @@ def train_model(best_accuracy, criterion, device, model, optimizer, trainloader,
     for idx in range(len(classes)):
         print("Accuracy of class " + classes[idx] + ": %.3f" % best_class_accuracy[idx])
 
-def test_model(device, model, testloader):
+def test_model():
 
     print("Calculating accuracy...")
     
@@ -307,17 +321,16 @@ def test_model(device, model, testloader):
 
 def main():
 
-    # Device setup
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
     args = parser.parse_args()
 
     if not args.test:
-        best_accuracy, criterion, model, optimizer, trainloader, testloader = set_up_training(device,args)
-        train_model(best_accuracy, criterion, device, model, optimizer, trainloader, testloader, args.num_epochs)
+        set_up_training(args)
+        train_model(args.num_epochs)
     else:
-        model, testloader = setup_test(device,args)
-        test_model(device, model, testloader)
+        setup_test(args)
+        test_model()
 
 
 

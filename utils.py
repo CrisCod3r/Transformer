@@ -16,7 +16,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sn
 import pandas as pd
 
-TOTAL_BAR_LENGTH = 151
+TOTAL_BAR_LENGTH = 70
 last_time = time.time()
 begin_time = last_time
 
