@@ -121,7 +121,7 @@ def set_up_training(args):
 
     # Update scheduler
     # scheduler = StepLR(optimizer, step_size = 5, gamma = 0.5)
-    scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patiente = 5, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patience = 5, verbose=True)
     #scheduler = ExponentialLR(optimizer, gamma = 0.5,verbose=True)
 
     # Train transformations
