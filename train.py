@@ -3,7 +3,7 @@ import torch
 import os
 
 # Training function
-def train(criterion, device, epoch, model, optimizer, scheduler,trainloader):
+def train(criterion, device, epoch, model, optimizer, scheduler, trainloader):
     """
     Trains the network for 1 epoch
     Args:
@@ -13,7 +13,6 @@ def train(criterion, device, epoch, model, optimizer, scheduler,trainloader):
         optimizer: Learning rate optimizer
         trainloader: Train data
     """
-    # Decay Learning Rate
     
     print('-----=| Epoch %d |=-----' % epoch)
 
@@ -55,7 +54,9 @@ def train(criterion, device, epoch, model, optimizer, scheduler,trainloader):
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
+    # Decay Learning Rate
     scheduler.step()
+    
     # Return this epoch's loss and train accuracy
     return train_loss / (batch_idx+1), 100.*correct/total
 
@@ -167,3 +168,38 @@ def final_test(classes, device, model, testloader):
                 n_class_samples[label] += 1
     
     return 100.*correct/total, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
+
+def test_and_return(device, model, testloader):
+
+    #Set model to evaluation
+    model.eval()
+
+    correct = 0
+    total = 0
+
+
+    true_labels, predicted_labels = [], []
+
+    with torch.no_grad():
+
+        for batch_idx, (inputs, labels) in enumerate(testloader):
+
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            # Get predicted output
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+
+            # Accumulate true and predicted labels
+            true_labels.extend( labels.data.tolist() )
+            predicted_labels.extend( predicted.tolist() )
+
+            # Add total and correct predictions
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+
+            # Update progress bar
+            progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
+                % (100.*correct/total, correct, total))
+    
+    return true_labels, predicted_labels

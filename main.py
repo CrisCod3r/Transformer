@@ -35,7 +35,7 @@ parser = arg.ArgumentParser(description= 'Train a CNN with the breast cancer dat
 parser.add_argument('-d', '--data', dest = 'path', default = 'data', type=str, help= 'Path to dataset')
 
 # Neural network
-parser.add_argument('-n', '--net', dest = 'net', default = 'weightednet', type=str, help= 'Neural network to train')
+parser.add_argument('-n', '--net', dest = 'net', default = 'lenet', type=str, help= 'Neural network to train')
 
 # Number of epochs
 parser.add_argument('-e', '--epochs', dest= 'num_epochs', default= 1, type=int, help= "Number of epochs in training")
@@ -56,7 +56,7 @@ parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=F
 
 # --------------- Global variables ---------------
 
-net_models = {'alexnet':AlexNet(),'densenet':DenseNet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
+net_models = {'alexnet':AlexNet(),'densenet':models.densenet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
 'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
 
 optimizers = {"sgd": torch.optim.SGD,"adam":torch.optim.Adam, "adadelta": torch.optim.Adadelta, "adagrad": torch.optim.Adagrad}
@@ -89,14 +89,20 @@ def set_up_training(args):
 
 
 
+
     try:
         # Model
         print('Building model..')
         model = net_models[model_name]
 
+        if os.path.isfile('./pretrained/' + model_name + '.pth'):
+            print("Previous training with this models found. Obtaining best accuracy...")
+            state_dict = torch.load('./pretrained/' + model_name + '.pth')
+            best_accuracy = state_dict['accuracy']
+            print("Best accuracy: ", best_accuracy)
 
         if args.resume:
-            state_dict = torch.load('./pretrained/' + model.name + '.pth')
+            state_dict = torch.load('./pretrained/' + model_name + '.pth')
             model.load_state_dict( state_dict['model'] )
             best_accuracy = state_dict['accuracy']
             print("Loaded checkpoint, best accuracy obtained previously is: %.3f" % best_accuracy)
@@ -121,14 +127,14 @@ def set_up_training(args):
 
     # Update scheduler
     # scheduler = StepLR(optimizer, step_size = 5, gamma = 0.5)
-    scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patience = 5, verbose=True)
-    #scheduler = ExponentialLR(optimizer, gamma = 0.5,verbose=True)
+    # scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patience = 5, verbose=True)
+    scheduler = ExponentialLR(optimizer, gamma = 0.99,verbose=True)
 
     # Train transformations
     train_transform = transforms.Compose([
 
         # Allow random image flips
-        transforms.RandomRotation(degrees = (-90, 90) ),
+        # transforms.RandomRotation(degrees = (-90, 90) ),
 
         # Allow random horizontal flips (data augmentation)
         transforms.RandomHorizontalFlip(p = 0.25),
@@ -155,7 +161,7 @@ def set_up_training(args):
     
     # Get training dataset (122400 images)
     print("Loading training dataset...")
-    training_data = BreastCancerDataset(args.path + 'train/', transforms = train_transform)
+    training_data = BreastCancerDataset(args.path + 'train/', transforms = train_transform, angles = [0, 90, -90])
     print("Loaded %d images" % len(training_data))
 
     # Get validation dataset (13600 images)
@@ -182,12 +188,13 @@ def setup_test(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    model = args.net.lower()
-
+    global model_name, model, testloader
+    model_name = args.net.lower()
+    
     try:
         # Model
         print('Loading model..')
-        model = net_models[model]
+        model = net_models[model_name]
         model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
         model.to(device)
 
@@ -229,10 +236,10 @@ def train_model(num_epochs):
     Args:
         num_epochs: Number of epochs
     """
-    global best_accuracy, model, model_name, trainloader, testloader, optimizer, scheduler
+    global best_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler
+    
     train_loss_list, test_loss_list = [], []
     train_acc_list, test_acc_list = [], []
-
     best_class_accuracy = []
 
     # Weights in case the model is WeightedNet
@@ -243,7 +250,7 @@ def train_model(num_epochs):
         
     for epoch in range(num_epochs):
 
-        train_loss, train_acc = train(criterion, device, epoch, model, optimizer, scheduler,trainloader)
+        train_loss, train_acc = train(criterion, device, epoch, model, optimizer, scheduler, trainloader)
         train_loss_list.append(train_loss)
         train_acc_list.append(train_acc)
 
@@ -257,18 +264,6 @@ def train_model(num_epochs):
         if test_acc > best_accuracy:
             best_accuracy = test_acc 
             best_class_accuracy = class_accuracy   
-
-    # If couldn't plot correctly
-    if not plot(list(range(1, num_epochs + 1)), [ (train_loss_list, 'Train loss'), (test_loss_list, 'Test loss') ], "Epochs", "Loss", name = "Loss_"+ model.name):
-
-        print("Train loss:\n", ','.join(train_loss_list))
-        print("Test loss:\n", ','.join(test_loss_list))
-
-    if not plot(list(range(1, num_epochs + 1)),[ (train_acc_list, 'Train accuracy'), (test_acc_list, 'Test accuracy') ] , "Epochs", "Accuracy (%)", name = "Accuracy_"+ model.name):
-        print("Train accuracy:\n", ','.join(train_acc_list))
-        print("Test accuracy:\n", ','.join(test_acc_list))
-    
-    
 
     if model.name == "WeightedNet":
         weights = []
@@ -288,12 +283,18 @@ def train_model(num_epochs):
     model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
     model.to(device)
 
-    plot_confusion_matrix(model,testloader,device)
+    true_labels, predicted_labels = test_and_return(device, model, testloader)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, model_name)
+    print("Precision:", precision)
+    print("Recall:", recall)
+    print("Specificity:", specificity)
+    print("F - Score:", f_score)
+    print("Balanced Accuracy:", bac)
     print("Best accuracy: ", best_accuracy)
 
     interval = interval95( best_accuracy / 100, len(testloader))
     print("Confidence interval (95%):")
-    print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
+    print(str(best_accuracy) + ' +- ' + str(interval))
 
     for idx in range(len(classes)):
         print("Accuracy of class " + classes[idx] + ": %.3f" % best_class_accuracy[idx])

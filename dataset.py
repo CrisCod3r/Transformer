@@ -1,13 +1,16 @@
 from PIL import Image 
 import glob
 from os import path
+from random import choice
 
 from torchvision import transforms
 from torch.utils.data.dataset import Dataset
 
+import torchvision.transforms.functional as TF
+
 
 class BreastCancerDataset(Dataset):
-    def __init__(self, data_dir, transforms = transforms.ToTensor()):
+    def __init__(self, data_dir, transforms = transforms.ToTensor(), angles = None):
         """
         Dataset created from images where the class is embedded in the file name
         Args:
@@ -26,6 +29,9 @@ class BreastCancerDataset(Dataset):
         # Function to transform images
         self.transform = transforms
 
+        # List containing a discrete rotation set
+        self.angles = angles
+
     def __getitem__(self,index):
         
         # Get image name from list
@@ -33,6 +39,11 @@ class BreastCancerDataset(Dataset):
 
         # Open image
         img = Image.open(img_path)
+
+        # This implements a discrete rotation to the image.
+        if self.angles is not None:
+            agl = choice(self.angles)
+            img = TF.rotate(img,agl)
 
         # Apply transforms 
         tensor = self.transform(img).float()
@@ -42,10 +53,13 @@ class BreastCancerDataset(Dataset):
 
         return (tensor, label)
 
-        
-        
-
     def __len__(self):
         return self.data_len
+
+    def apply_pca(self):
+        pass
+        
+    def apply_tsne(self):
+        pass
 
     

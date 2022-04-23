@@ -12,9 +12,13 @@ import matplotlib.pyplot as plt
 import torch
 from torch import mean
 
-from sklearn.metrics import confusion_matrix
+
 import seaborn as sn
 import pandas as pd
+
+# Sklearn metrics
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 
 TOTAL_BAR_LENGTH = 70
 last_time = time.time()
@@ -120,12 +124,12 @@ def interval95(acc,data):
     Args:
         acc: Accuracy (in %)
         data: Number of samples used for testing
-
+    Returns the interval boundary.
     """
     
     bound = 1.96 * math.sqrt((acc*(1-acc)) / data)
 
-    return [acc - bound, acc + bound]
+    return bound
 
 
 def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
@@ -195,53 +199,115 @@ def count_parameters(model):
     return sum(param.numel() for param in model.parameters() if param.requires_grad)
 
     
-def plot_confusion_matrix(model, dataloader,device):
+def plot_confusion_matrix(true_labels, predicted_labels, model_name):
+    """
+    Plots the confussion matrix of a model
+    Args:
+        true_labels : Array of shape 1D with the true labels
+        predicted_labels : Array of shape 1D with the predicted labels
+        model_name: Name of the model used
+    """
+    # Build confusion matrix
+    cf_matrix = confusion_matrix(true_labels, predicted_labels)
 
-    with torch.no_grad():
-        y_pred = []
-        y_true = []
+    # Calculate specifity
+    specificity = cf_matrix[0,0] / (cf_matrix[0,0] + cf_matrix[0,1])
 
-        for batch_idx, (inputs, labels) in enumerate(dataloader):
-            inputs, labels = inputs.to(device), labels.to(device)
-            # Get predicted output
-            outputs = model(inputs)
-            _, predicted = outputs.max(1)
-
-            # Accumulate predictions
-            y_pred.extend(predicted.tolist()) 
-            
-            # Accumulate correct labels
-            labels = labels.data
-            y_true.extend(labels.tolist()) 
-        
-
-
-        
-        # Build confusion matrix
-        cf_matrix = confusion_matrix(y_pred, y_true)
-
-        # Information that will appear in each cell
-        group_names = ['True Neg','False Pos','False Neg','True Pos']
-        group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
-        group_percentages = ["{0:.2%}".format(value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
-
-        labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
-        labels = labels[2:] + labels[:2]
-        
-        labels = np.asarray(labels).reshape(2,2)
-
-        ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues_r',cbar = False)
-        ax.set_title(model.name + " confussion matrix")
-        ax.set_xlabel('Predicted class')
-        ax.set_ylabel('Actual class ')
-
-        # Axis labels
-        ax.xaxis.set_ticklabels(['Benign','Malignant'])
-        ax.yaxis.set_ticklabels(['Malignant','Benign'])
-        ax.set_ylim([0,2])
-        fig = ax.get_figure()
-        fig.savefig('Confussion_Matrix_' + model.name + '.png',dpi=400)
+    # Information that will appear in each cell
+    group_names = ['True Neg','False Pos','False Neg','True Pos']
+    group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
+    group_percentages = ["{0:.2%}".format(value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
 
     
-    return
+    labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
+    labels = labels[2:] + labels[:2]
 
+    labels = np.asarray(labels).reshape(2,2)
+
+    ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues_r',cbar = False)
+    ax.set_title(model_name+ " Confusion Matrix")
+    ax.set_xlabel('Predicted class')
+    ax.set_ylabel('True class ')
+
+    # Axis labels
+    ax.xaxis.set_ticklabels(['Benign','Malignant'])
+    ax.yaxis.set_ticklabels(['Malignant','Benign'])
+    ax.set_ylim([0,2])
+
+    fig = ax.get_figure()
+    fig.savefig('Confussion_Matrix_' + model_name + '.png',dpi=400)
+    fig.clf()
+    
+    return specificity
+
+def plot_roc_auc(fpr, tpr, auc_value, model_name):
+    """
+    Plots the ROC-AUC curve
+    Args:
+        fpr: False positive rate
+        tpr: True positive rate
+        auc: Area under the curve
+        model_name: Name of the model used
+    """
+    # Title of the plot
+    plt.title('Receiver Operating Characteristic ('  + model_name + ')' )
+
+    # Plot ROC-AUC
+    plt.plot(fpr,tpr,label = 'AUC = %0.3f' % auc_value)
+
+    # Legend
+    plt.legend(loc = 'lower right')
+
+    # Limits of the X and Y axis
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+
+    # X and Y axis labels
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+
+    # Save plot and return
+    plt.savefig('ROC-AUC ' + model_name + '.png')
+    plt.clf()
+    return 
+
+
+def compute_stats(true_labels, predicted_labels):
+    """
+    Computes the basic metrics of the model
+    Args:
+        true_labels : Array of shape 1D with the true labels
+        predicted_labels : Array of shape 1D with the predicted labels
+    """
+    # Precision
+    precision = precision_score(y_true = true_labels, y_pred = predicted_labels)
+
+    # Recall
+    recall = recall_score(y_true = true_labels, y_pred = predicted_labels)
+
+    # F1 - Score
+    f_score = f1_score(y_true = true_labels, y_pred = predicted_labels)
+
+    # Balanced accuracy (BAC)
+    bac = balanced_accuracy_score(y_true = true_labels, y_pred = predicted_labels)
+    
+    # Receiver operating characteristic (ROC)
+    fpr, tpr, threshold = roc_curve(true_labels, predicted_labels)
+
+    # Area Under the Curve (AUC)
+    auc_value =  auc(fpr, tpr)
+
+    return precision, recall, f_score, bac, fpr, tpr, threshold, auc_value
+
+def compute_and_plot_stats(true_labels, predicted_labels, model_name):
+
+    precision, recall ,f_score , bac, fpr, tpr, threshold, auc_value = compute_stats(true_labels, predicted_labels)
+
+    # Plot ROC-AUC curve
+    plot_roc_auc(fpr,tpr,auc_value,model_name)
+
+    # Plot confussion matrix
+    specificity = plot_confusion_matrix(true_labels, predicted_labels, model_name)
+
+    return precision, recall, specificity, f_score, bac
