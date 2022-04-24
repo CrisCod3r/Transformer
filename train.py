@@ -58,7 +58,8 @@ def train(criterion, device, epoch, model, optimizer, scheduler, trainloader):
     scheduler.step()
     
     # Return this epoch's loss and train accuracy
-    return train_loss / (batch_idx+1), 100.*correct/total
+    # return train_loss / (batch_idx+1), 100.*correct/total
+    return
 
 
 def test(best_acc, classes, criterion, device, epoch, model, optimizer, testloader):
@@ -130,7 +131,8 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
 
 
     # Return this epoch's test loss, test accuracy and class accuracy
-    return test_loss / (batch_idx+1), acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
+    # return test_loss / (batch_idx+1), acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
+    return acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
 
 
 def final_test(classes, device, model, testloader):
@@ -167,7 +169,9 @@ def final_test(classes, device, model, testloader):
 
                 n_class_samples[label] += 1
     
-    return 100.*correct/total, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
+    # Return this epoch's test loss, test accuracy and class accuracy
+    # return test_loss / (batch_idx+1), acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
+    return [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
 
 def test_and_return(device, model, testloader):
 

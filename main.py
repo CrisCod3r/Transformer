@@ -76,6 +76,7 @@ best_accuracy = 0
 trainloader, testloader = None, None
 model, optimizer = None,None
 
+test_samples = 0
 # ---------------------------------------------
 def set_up_training(args):
     """
@@ -84,7 +85,7 @@ def set_up_training(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global best_accuracy, model_name, model, optimizer, trainloader, testloader, scheduler
+    global best_accuracy, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
     model_name = args.net.lower()
 
 
@@ -169,6 +170,7 @@ def set_up_training(args):
     test_data = BreastCancerDataset(args.path + 'validation/', transforms = test_transform)
     print("Loaded %d images" % len(test_data))
 
+    test_samples = len(test_data)
 
     # Training data loader
     trainloader = DataLoader(dataset = training_data, batch_size = args.batch_size, shuffle = True)
@@ -188,7 +190,7 @@ def setup_test(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global model_name, model, testloader
+    global model_name, model, testloader, test_samples
     model_name = args.net.lower()
     
     try:
@@ -220,7 +222,7 @@ def setup_test(args):
     print("Loading test dataset...")
     test_data = BreastCancerDataset(args.path, transforms = test_transform)
     print("Loaded %d images" % len(test_data))
-
+    test_samples = len(test_data)
 
 
     # Test data loader
@@ -236,36 +238,30 @@ def train_model(num_epochs):
     Args:
         num_epochs: Number of epochs
     """
-    global best_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler
+    global best_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples
     
-    train_loss_list, test_loss_list = [], []
-    train_acc_list, test_acc_list = [], []
     best_class_accuracy = []
 
     # Weights in case the model is WeightedNet
-    if model.name == "WeightedNet":
+    if model_name == "WeightedNet":
         weights_list = [model.weights()]
 
     classes = ('benign','malignant')
         
     for epoch in range(num_epochs):
 
-        train_loss, train_acc = train(criterion, device, epoch, model, optimizer, scheduler, trainloader)
-        train_loss_list.append(train_loss)
-        train_acc_list.append(train_acc)
+        train(criterion, device, epoch, model, optimizer, scheduler, trainloader)
 
-        if model.name == "WeightedNet":
+        if model_name == "WeightedNet":
             weights_list.append( model.weights())
 
-        test_loss, test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, model, optimizer, testloader)
-        test_loss_list.append(test_loss)
-        test_acc_list.append(test_acc)   
+        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, model, optimizer, testloader)
 
         if test_acc > best_accuracy:
             best_accuracy = test_acc 
             best_class_accuracy = class_accuracy   
 
-    if model.name == "WeightedNet":
+    if model_name == "WeightedNet":
         weights = []
         weights_list = list(map(list,zip(*weights_list)))
 
@@ -280,7 +276,7 @@ def train_model(num_epochs):
     # Plot confussion matrix when the model had the best accuracy
     del model
     model = net_models[model_name]
-    model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
+    model.load_state_dict( torch.load('./pretrained/' + model_name + '.pth')['model'] )
     model.to(device)
 
     print("Obtaining predictions...")
@@ -294,7 +290,7 @@ def train_model(num_epochs):
     print("Balanced Accuracy:", bac)
     print("Best accuracy: ", best_accuracy)
 
-    interval = interval95( best_accuracy / 100, len(testloader))
+    interval = interval95( best_accuracy / 100, test_samples)
     print("Confidence interval (95%):")
     print(str(best_accuracy) + ' +- ' + str(interval * 100))
 
@@ -309,7 +305,7 @@ def test_model():
     test_acc, class_accuracy = final_test(classes, device, model, testloader)
 
 
-    interval = interval95( best_accuracy / 100, len(testloader))
+    interval = interval95( best_accuracy / 100, test_samples)
 
     print("Accuracy: ", test_acc)
     print("Confidence interval (95%):")
