@@ -255,7 +255,7 @@ def train_model(num_epochs):
         if model_name == "WeightedNet":
             weights_list.append( model.weights())
 
-        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, model, optimizer, testloader)
+        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, model, model_name, optimizer, testloader)
 
         if test_acc > best_accuracy:
             best_accuracy = test_acc 

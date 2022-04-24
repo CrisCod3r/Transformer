@@ -62,7 +62,7 @@ def train(criterion, device, epoch, model, optimizer, scheduler, trainloader):
     return
 
 
-def test(best_acc, classes, criterion, device, epoch, model, optimizer, testloader):
+def test(best_acc, classes, criterion, device, epoch, model, model_name, optimizer, testloader):
 
     #Set model to evaluation
     model.eval()
@@ -108,7 +108,7 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
     acc = 100.*correct/total
     if acc > best_acc:
         print('Saving checkpoint...')
-        if model.name == "WeightedNet":
+        if model_name == "WeightedNet":
 
             state = {
                 'model': model.state_dict(),
@@ -127,7 +127,7 @@ def test(best_acc, classes, criterion, device, epoch, model, optimizer, testload
         }
         if not os.path.isdir('pretrained'):
             os.mkdir('pretrained')
-        torch.save(state, './pretrained/' + model.name + '.pth')
+        torch.save(state, './pretrained/' + model_name + '.pth')
 
 
     # Return this epoch's test loss, test accuracy and class accuracy
