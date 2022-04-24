@@ -19,7 +19,7 @@ from models.WeightedNet import WeightedNet
 
 from train import *
 
-from utils import interval95, plot, get_mean_and_std, plot_confusion_matrix
+from utils import interval95, plot, get_mean_and_std, compute_and_plot_stats
 
 from torch import optim, device, Generator
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, ExponentialLR
@@ -283,7 +283,9 @@ def train_model(num_epochs):
     model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
     model.to(device)
 
+    print("Obtaining predictions...")
     true_labels, predicted_labels = test_and_return(device, model, testloader)
+
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, model_name)
     print("Precision:", precision)
     print("Recall:", recall)
@@ -294,7 +296,7 @@ def train_model(num_epochs):
 
     interval = interval95( best_accuracy / 100, len(testloader))
     print("Confidence interval (95%):")
-    print(str(best_accuracy) + ' +- ' + str(interval))
+    print(str(best_accuracy) + ' +- ' + str(interval * 100))
 
     for idx in range(len(classes)):
         print("Accuracy of class " + classes[idx] + ": %.3f" % best_class_accuracy[idx])
