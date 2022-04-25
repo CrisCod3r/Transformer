@@ -1,35 +1,23 @@
 import torch
 
 import torchvision
-import torchvision.models as models
 import torchvision.transforms as transforms
 
 
 from dataset import BreastCancerDataset
 
-from models.AlexNet import *
-from models.DenseNet import *
-from models.DLA import *
-from models.EfficientNet import *
-from models.GoogLeNet import *
-from models.LeNet5 import *
-from models.ResNet import *
-from models.VGG import *
-from models.WeightedNet import WeightedNet
-
 from train import *
 
-from utils import interval95, plot, get_mean_and_std, compute_and_plot_stats
+from utils import interval95, plot, get_mean_and_std, compute_and_plot_stats, build_optimizer, build_model
 
 from torch import optim, device, Generator
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, ExponentialLR
 from torch.utils.data import Dataset, DataLoader, random_split
 
 import argparse as arg
-import sys
 import os
 
-parser = arg.ArgumentParser(description= 'Train a CNN with the breast cancer dataset.')
+parser = arg.ArgumentParser(description= 'Train or test a CNN or ViT with the breast cancer dataset.')
 
 # Path to data
 parser.add_argument('-d', '--data', dest = 'path', default = 'data', type=str, help= 'Path to dataset')
@@ -52,14 +40,10 @@ parser.add_argument('-r', '--resume', action= 'store_true',dest = 'resume',defau
 # Test the neural network (requiers the -n parameter)
 parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=False,help= 'Test the neural network (requiers the -n parameter)')
 
-
+# Name used for the files generated as output (plots)
+parser.add_argument('-na', '--name', dest = 'file_name',default="output", type=str,help= 'Name used for the files generated as output (plots)')
 
 # --------------- Global variables ---------------
-
-net_models = {'alexnet':AlexNet(),'densenet':models.densenet121(),'dla': DLA(),'efficientnet':EfficientNet("b7", num_classes=2),
-'inception':GoogLeNet(),'lenet':LeNet5(),'resnet':ResNet50(),'vgg':VGG(vgg_type="VGG19"), 'weightednet': WeightedNet()}
-
-optimizers = {"sgd": torch.optim.SGD,"adam":torch.optim.Adam, "adadelta": torch.optim.Adadelta, "adagrad": torch.optim.Adagrad}
 
 model_name = ""
 
@@ -77,6 +61,7 @@ trainloader, testloader = None, None
 model, optimizer = None,None
 
 test_samples = 0
+file_name = None
 # ---------------------------------------------
 def set_up_training(args):
     """
@@ -85,57 +70,42 @@ def set_up_training(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global best_accuracy, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
+    global best_accuracy, file_name, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
+
+    # Obtain model name
     model_name = args.net.lower()
 
+    # Obtain output file name
+    file_name = args.file_name
+
+    # Model
+    print('Building model..')
+    model = build_model(model_name)
+
+    if os.path.isfile('./pretrained/' + file_name + '.pth'):
+        print("Previous training with this models found. Obtaining best accuracy...")
+        state_dict = torch.load('./pretrained/' + file_name + '.pth')
+        best_accuracy = state_dict['accuracy']
+        print("Best accuracy: ", best_accuracy)
+
+    if args.resume:
+        state_dict = torch.load('./pretrained/' + file_name + '.pth')
+        model.load_state_dict( state_dict['model'] )
+        best_accuracy = state_dict['accuracy']
+        print("Loaded checkpoint, best accuracy obtained previously is: %.3f" % best_accuracy)
+
+    model.to(device)
 
 
-
-    try:
-        # Model
-        print('Building model..')
-        model = net_models[model_name]
-
-        if os.path.isfile('./pretrained/' + model_name + '.pth'):
-            print("Previous training with this models found. Obtaining best accuracy...")
-            state_dict = torch.load('./pretrained/' + model_name + '.pth')
-            best_accuracy = state_dict['accuracy']
-            print("Best accuracy: ", best_accuracy)
-
-        if args.resume:
-            state_dict = torch.load('./pretrained/' + model_name + '.pth')
-            model.load_state_dict( state_dict['model'] )
-            best_accuracy = state_dict['accuracy']
-            print("Loaded checkpoint, best accuracy obtained previously is: %.3f" % best_accuracy)
-
-        model.to(device)
-
-    except:
-        print("Error, unrecognized model")
-        print("Available models:", ', '.join(['alexnet','densenet','dla', 'efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
-        sys.exit(-1)
-
+    # Get optimizer
     optimizer = args.optimizer.lower()
+    optimizer = build_optimizer(optimizer) (model.parameters(), lr= 1e-3)
 
-    try:
-        # Build optimizer
-        optimizer = optimizers[optimizer](model.parameters(), lr= 1e-3)
-
-    except:
-        print("Error, unrecognized optimizer")
-        print("Available optimizers:", ', '.join(['sgd','adam','adadelta','adagrad']))
-        sys.exit(-1)
-
-    # Update scheduler
-    # scheduler = StepLR(optimizer, step_size = 5, gamma = 0.5)
-    # scheduler = ReduceLROnPlateau(optimizer, mode = 'max', factor = 0.5, patience = 5, verbose=True)
+    # Build scheduler
     scheduler = ExponentialLR(optimizer, gamma = 0.99,verbose=True)
 
     # Train transformations
     train_transform = transforms.Compose([
-
-        # Allow random image flips
-        # transforms.RandomRotation(degrees = (-90, 90) ),
 
         # Allow random horizontal flips (data augmentation)
         transforms.RandomHorizontalFlip(p = 0.25),
@@ -148,8 +118,6 @@ def set_up_training(args):
 
         # Normalize train dataset with its mean and standard deviation
         transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
-
-        
     ])
 
     test_transform = transforms.Compose([
@@ -160,7 +128,7 @@ def set_up_training(args):
         transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
     ])
     
-    # Get training dataset (122400 images)
+    # Get training dataset (122400 images) with rotations
     print("Loading training dataset...")
     training_data = BreastCancerDataset(args.path + 'train/', transforms = train_transform, angles = [0, 90, -90])
     print("Loaded %d images" % len(training_data))
@@ -190,24 +158,20 @@ def setup_test(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global model_name, model, testloader, test_samples
+    global file_namemodel_name, model, testloader, test_samples
+
+    # Obtain model name
     model_name = args.net.lower()
+
+    # Obtain output file name
+    file_name = args.file_name
     
-    try:
-        # Model
-        print('Loading model..')
-        model = net_models[model_name]
-        model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
-        model.to(device)
-
-    except KeyError:
-        print("Error, unrecognized model")
-        print("Available models:", ', '.join(['alexnet', 'densenet','dla','efficientnet', 'inception', 'lenet', 'resnet', 'vgg','weightednet']))
-        sys.exit(-1)
-    except Exception as e:
-        print(e)
-        sys.exit(-1)
-
+    
+    # Model
+    print('Building model..')
+    model = build_model(model_name)
+    model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
+    model.to(device)
 
     test_transform = transforms.Compose([
         # Transform images to tensors
@@ -238,13 +202,9 @@ def train_model(num_epochs):
     Args:
         num_epochs: Number of epochs
     """
-    global best_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples
+    global best_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples, file_name
     
     best_class_accuracy = []
-
-    # Weights in case the model is WeightedNet
-    if model_name == "WeightedNet":
-        weights_list = [model.weights()]
 
     classes = ('benign','malignant')
         
@@ -252,36 +212,23 @@ def train_model(num_epochs):
 
         train(criterion, device, epoch, model, optimizer, scheduler, trainloader)
 
-        if model_name == "WeightedNet":
-            weights_list.append( model.weights())
-
-        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, model, model_name, optimizer, testloader)
+        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, file_name, model, model_name, optimizer, testloader)
 
         if test_acc > best_accuracy:
             best_accuracy = test_acc 
             best_class_accuracy = class_accuracy   
 
-    if model_name == "WeightedNet":
-        weights = []
-        weights_list = list(map(list,zip(*weights_list)))
-
-        for i in range(0,len(weights_list)):
-            weights.append( ( weights_list[i], "Clasificador " + str(i+1) ) )
-
-        plot( list(range(0, num_epochs + 1)),weights, "Epochs", "Weights", name= "Weights_" + model.name)
-
-
-    
-
     # Plot confussion matrix when the model had the best accuracy
     del model
-    model = net_models[model_name]
-    model.load_state_dict( torch.load('./pretrained/' + model_name + '.pth')['model'] )
+    model = build_model(model_name)
+    model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth')['model'] )
     model.to(device)
 
+    # Obtain predictions
     print("Obtaining predictions...")
     true_labels, predicted_labels = test_and_return(device, model, testloader)
 
+    # Compute and plot metrics
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, model_name)
     print("Precision:", precision)
     print("Recall:", recall)
@@ -290,6 +237,7 @@ def train_model(num_epochs):
     print("Balanced Accuracy:", bac)
     print("Best accuracy: ", best_accuracy)
 
+    # Confidence interval
     interval = interval95( best_accuracy / 100, test_samples)
     print("Confidence interval (95%):")
     print(str(best_accuracy) + ' +- ' + str(interval * 100))
@@ -299,28 +247,31 @@ def train_model(num_epochs):
 
 def test_model():
 
-    print("Calculating accuracy...")
-    
-    classes = ('benign','malignant')
-    test_acc, class_accuracy = final_test(classes, device, model, testloader)
+    print("Obtaining predictions...")
 
+    # Obtain predictions
+    true_labels, predicted_labels = test_and_return(device, model, testloader)
 
+    # Compute and plot metrics
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, model_name)
+    print("Precision:", precision)
+    print("Recall:", recall)
+    print("Specificity:", specificity)
+    print("F - Score:", f_score)
+    print("Balanced Accuracy:", bac)
+    print("Best accuracy: ", best_accuracy)
+
+    # Confidence interval
     interval = interval95( best_accuracy / 100, test_samples)
-
-    print("Accuracy: ", test_acc)
     print("Confidence interval (95%):")
-    print("[%.3f, %.3f]" % (best_accuracy - interval[0], best_accuracy + interval[1]) )
-
-    for idx in range(len(classes)):
-        print("Accuracy of class " + classes[idx] + ": %.3f" % class_accuracy[idx])
+    print(str(best_accuracy) + ' +- ' + str(interval * 100))
 
 
 
 
 def main():
 
-
-
+    # Parse arguments
     args = parser.parse_args()
 
     if not args.test:

@@ -20,6 +20,10 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
 from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 
+# Models
+import torchvision.models as models
+from models.LeNet5 import *
+
 TOTAL_BAR_LENGTH = 70
 last_time = time.time()
 begin_time = last_time
@@ -117,6 +121,107 @@ def format_time(seconds):
         f = '0ms'
 
     return f
+
+
+def build_model(model_name):
+
+    # Available models
+    net_models = ["alexnet", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
+     "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
+
+    assert model_name in net_models, "Error, unrecognized model.\n Available models: " + ', '.join(net_models)
+
+    if model_name == "alexnet":
+        return models.AlexNet()
+
+    if model_name == "densenet121":
+        return models.densenet121()
+
+    if model_name == "densenet161":
+        return models.densenet161()
+
+    if model_name == "efficientnetb0":
+        return models.efficientnet_b0()
+
+    if model_name == "efficientnetb1":
+        return models.efficientnet_b1()
+
+    if model_name == "efficientnetb2":
+        return models.efficientnet_b2()
+
+    if model_name == "efficientnetb3":
+        return models.efficientnet_b3()
+
+    if model_name == "efficientnetb4":
+        return models.efficientnet_b4()
+
+    if model_name == "efficientnetb5":
+        return models.efficientnet_b5()
+
+    if model_name == "efficientnetb6":
+        return models.efficientnet_b6()
+
+    if model_name == "efficientnetb7":
+        return models.efficientnet_b7()
+
+    if model_name == "googlenet":
+        return models.googlenet()
+
+    if model_name == "lenet5":
+        return LeNet5()
+
+    if model_name == "resnet50":
+        return models.resnet50()
+
+    if model_name == "resnet101":
+        return models.resnet101()
+
+    if model_name == "resnet152":
+        return models.resnet152()
+
+    if model_name == "vit_b_16":
+        return models.vit_b_16()
+
+    if model_name == "vit_b_32":
+        return models.vit_b_32()
+
+    if model_name == "vit_l_16":
+        return models.vit_l_16()
+
+    if model_name == "vit_l_32":
+        return models.vit_l_32()
+
+    if model_name == "vgg11":
+        return models.vgg11_bn()
+
+    if model_name == "vgg13":
+        return models.vgg13_bn()
+
+    if model_name == "vgg16":
+        return models.vgg16_bn()
+
+    if model_name == "vgg19":
+        return models.vgg19_bn()
+
+def build_optimizer(optimizer_name):
+
+    # Available optimizers
+    optimizers = ['sgd','adam','adadelta','adagrad']
+
+    assert optimizer_name in optimizers, "Error, unrecognized optimizer.\n Available optimizer: " + ', '.join(optimizers)
+
+    if optimizer_name == "sgd":
+        return torch.optim.SGD
+
+    if optimizer_name == "adam":
+        return torch.optim.Adam
+
+    if optimizer_name == "adadelta":
+        return torch.optim.Adadelta
+
+    if optimizer_name == "adagrad":
+        return torch.optim.Adagrad
 
 def interval95(acc,data):
     """
