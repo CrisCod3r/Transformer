@@ -304,13 +304,13 @@ def count_parameters(model):
     return sum(param.numel() for param in model.parameters() if param.requires_grad)
 
     
-def plot_confusion_matrix(true_labels, predicted_labels, model_name):
+def plot_confusion_matrix(true_labels, predicted_labels, file_name):
     """
     Plots the confussion matrix of a model
     Args:
         true_labels : Array of shape 1D with the true labels
         predicted_labels : Array of shape 1D with the predicted labels
-        model_name: Name of the model used
+        file_name: Name of the model used
     """
     # Build confusion matrix
     cf_matrix = confusion_matrix(true_labels, predicted_labels)
@@ -330,7 +330,7 @@ def plot_confusion_matrix(true_labels, predicted_labels, model_name):
     labels = np.asarray(labels).reshape(2,2)
 
     ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues_r',cbar = False)
-    ax.set_title(model_name+ " Confusion Matrix")
+    ax.set_title(file_name+ " Confusion Matrix")
     ax.set_xlabel('Predicted class')
     ax.set_ylabel('True class ')
 
@@ -340,22 +340,22 @@ def plot_confusion_matrix(true_labels, predicted_labels, model_name):
     ax.set_ylim([0,2])
 
     fig = ax.get_figure()
-    fig.savefig('Confussion_Matrix_' + model_name + '.png',dpi=400)
+    fig.savefig('Confussion_Matrix_' + file_name + '.png',dpi=400)
     fig.clf()
     
     return specificity
 
-def plot_roc_auc(fpr, tpr, auc_value, model_name):
+def plot_roc_auc(fpr, tpr, auc_value, file_name):
     """
     Plots the ROC-AUC curve
     Args:
         fpr: False positive rate
         tpr: True positive rate
         auc: Area under the curve
-        model_name: Name of the model used
+        file_name: Name of the model used
     """
     # Title of the plot
-    plt.title('Receiver Operating Characteristic ('  + model_name + ')' )
+    plt.title('Receiver Operating Characteristic ('  + file_name + ')' )
 
     # Plot ROC-AUC
     plt.plot(fpr,tpr,label = 'AUC = %0.3f' % auc_value)
@@ -373,7 +373,7 @@ def plot_roc_auc(fpr, tpr, auc_value, model_name):
     plt.xlabel('False Positive Rate')
 
     # Save plot and return
-    plt.savefig('ROC-AUC ' + model_name + '.png')
+    plt.savefig('ROC-AUC_' + file_name + '.png')
     plt.clf()
     return 
 
@@ -405,14 +405,14 @@ def compute_stats(true_labels, predicted_labels):
 
     return precision, recall, f_score, bac, fpr, tpr, threshold, auc_value
 
-def compute_and_plot_stats(true_labels, predicted_labels, model_name):
+def compute_and_plot_stats(true_labels, predicted_labels, file_name):
 
     precision, recall ,f_score , bac, fpr, tpr, threshold, auc_value = compute_stats(true_labels, predicted_labels)
 
     # Plot ROC-AUC curve
-    plot_roc_auc(fpr,tpr,auc_value,model_name)
+    plot_roc_auc(fpr,tpr,auc_value,file_name)
 
     # Plot confussion matrix
-    specificity = plot_confusion_matrix(true_labels, predicted_labels, model_name)
+    specificity = plot_confusion_matrix(true_labels, predicted_labels, file_name)
 
     return precision, recall, specificity, f_score, bac

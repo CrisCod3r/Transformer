@@ -57,6 +57,9 @@ criterion = torch.nn.CrossEntropyLoss()
 scheduler = None
 
 best_accuracy = 0
+best_class_accuracy = []
+
+
 trainloader, testloader = None, None
 model, optimizer = None,None
 
@@ -70,7 +73,7 @@ def set_up_training(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global best_accuracy, file_name, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
+    global best_accuracy, best_class_accuracy, file_name, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
@@ -86,6 +89,7 @@ def set_up_training(args):
         print("Previous training with this models found. Obtaining best accuracy...")
         state_dict = torch.load('./pretrained/' + file_name + '.pth')
         best_accuracy = state_dict['accuracy']
+        best_class_accuracy = state_dict['class_accuracy']
         print("Best accuracy: ", best_accuracy)
 
     if args.resume:
@@ -202,10 +206,8 @@ def train_model(num_epochs):
     Args:
         num_epochs: Number of epochs
     """
-    global best_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples, file_name
+    global best_accuracy, best_class_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples, file_name
     
-    best_class_accuracy = []
-
     classes = ('benign','malignant')
         
     for epoch in range(num_epochs):
@@ -229,7 +231,7 @@ def train_model(num_epochs):
     true_labels, predicted_labels = test_and_return(device, model, testloader)
 
     # Compute and plot metrics
-    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, model_name)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
     print("Precision:", precision)
     print("Recall:", recall)
     print("Specificity:", specificity)
@@ -253,7 +255,7 @@ def test_model():
     true_labels, predicted_labels = test_and_return(device, model, testloader)
 
     # Compute and plot metrics
-    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, model_name)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
     print("Precision:", precision)
     print("Recall:", recall)
     print("Specificity:", specificity)
