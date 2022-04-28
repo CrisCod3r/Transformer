@@ -23,6 +23,7 @@ from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 # Models
 import torchvision.models as models
 from models.LeNet5 import *
+from models.AlexNet import *
 
 TOTAL_BAR_LENGTH = 70
 last_time = time.time()
@@ -133,76 +134,77 @@ def build_model(model_name):
     assert model_name in net_models, "Error, unrecognized model.\n Available models: " + ', '.join(net_models)
 
     if model_name == "alexnet":
-        return models.AlexNet()
+        return AlexNet()
 
     if model_name == "densenet121":
-        return models.densenet121()
+        return models.densenet121(pretrained = True)
 
     if model_name == "densenet161":
-        return models.densenet161()
+        return models.densenet161(pretrained = True)
 
     if model_name == "efficientnetb0":
-        return models.efficientnet_b0()
+        return models.efficientnet_b0(pretrained = True)
 
     if model_name == "efficientnetb1":
-        return models.efficientnet_b1()
+        return models.efficientnet_b1(pretrained = True)
 
     if model_name == "efficientnetb2":
-        return models.efficientnet_b2()
+        return models.efficientnet_b2(pretrained = True)
 
     if model_name == "efficientnetb3":
-        return models.efficientnet_b3()
+        return models.efficientnet_b3(pretrained = True)
 
     if model_name == "efficientnetb4":
-        return models.efficientnet_b4()
+        return models.efficientnet_b4(pretrained = True)
 
     if model_name == "efficientnetb5":
-        return models.efficientnet_b5()
+        return models.efficientnet_b5(pretrained = True)
 
     if model_name == "efficientnetb6":
-        return models.efficientnet_b6()
+        return models.efficientnet_b6(pretrained = True)
 
     if model_name == "efficientnetb7":
-        return models.efficientnet_b7()
-
+        return models.efficientnet_b7(pretrained = True)
+    
+    # Note: Not pretrained googlenet outputs an error for training loop
     if model_name == "googlenet":
-        return models.googlenet()
+        return models.googlenet(pretrained = True)
 
     if model_name == "lenet5":
         return LeNet5()
 
     if model_name == "resnet50":
-        return models.resnet50()
+        return models.resnet50(pretrained = True)
 
     if model_name == "resnet101":
-        return models.resnet101()
+        return models.resnet101(pretrained = True)
 
     if model_name == "resnet152":
-        return models.resnet152()
+        return models.resnet152(pretrained = True)
 
     if model_name == "vit_b_16":
-        return models.vit_b_16()
+        return models.vit_b_16(pretrained = True)
 
     if model_name == "vit_b_32":
-        return models.vit_b_32()
+        return models.vit_b_32(pretrained = True)
 
     if model_name == "vit_l_16":
-        return models.vit_l_16()
+        return models.vit_l_16(pretrained = True)
 
     if model_name == "vit_l_32":
-        return models.vit_l_32()
+        return models.vit_l_32(pretrained = True)
 
     if model_name == "vgg11":
-        return models.vgg11_bn()
+        return models.vgg11_bn(pretrained = True)
 
     if model_name == "vgg13":
-        return models.vgg13_bn()
+        return models.vgg13_bn(pretrained = True)
 
     if model_name == "vgg16":
-        return models.vgg16_bn()
+        return models.vgg16_bn(pretrained = True)
 
     if model_name == "vgg19":
-        return models.vgg19_bn()
+        return models.vgg19_bn(pretrained = True)
 
 def build_optimizer(optimizer_name):
 

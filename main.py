@@ -162,7 +162,7 @@ def setup_test(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global file_namemodel_name, model, testloader, test_samples
+    global file_name, model_name, model, testloader, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
@@ -174,7 +174,7 @@ def setup_test(args):
     # Model
     print('Building model..')
     model = build_model(model_name)
-    model.load_state_dict( torch.load('./pretrained/' + model.name + '.pth')['model'] )
+    model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth')['model'] )
     model.to(device)
 
     test_transform = transforms.Compose([
