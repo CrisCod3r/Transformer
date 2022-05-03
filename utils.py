@@ -1,17 +1,13 @@
-import sys
-import time
-import os
-import math
-
 from scipy.interpolate import make_interp_spline
 
 import numpy as np
 from numpy import linspace as linspace
 import matplotlib.pyplot as plt
 
+# PyTorch utils
 import torch
 from torch import mean
-
+import torchvision.transforms as transforms
 
 import seaborn as sn
 import pandas as pd
@@ -24,6 +20,16 @@ from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 import torchvision.models as models
 from models.LeNet5 import *
 from models.AlexNet import *
+
+# Others
+import pickle
+import sys
+import time
+import os
+import math
+
+# For PCA projection
+from cv2 import merge
 
 TOTAL_BAR_LENGTH = 70
 last_time = time.time()
@@ -224,6 +230,199 @@ def build_optimizer(optimizer_name):
 
     if optimizer_name == "adagrad":
         return torch.optim.Adagrad
+
+def build_transforms(model_name, pca):
+
+    # Available models
+    net_models = ["alexnet", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
+     "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
+
+    assert model_name in net_models, "Error, unrecognized model.\n Available models: " + ', '.join(net_models)
+    assert type(pca) == bool, "Error, parameter pca must be a boolean."
+
+    if model_name == 'vit_b_16' or model_name == 'vit_l_16':
+        
+        # If PCA is used, ToTensor() can not be used
+        if pca:
+
+            train_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+            
+                # Allow random horizontal flips (data augmentation)
+                transforms.RandomHorizontalFlip(p = 0.25),
+
+                # Allow random vertical flips (data augmentation)
+                transforms.RandomVerticalFlip(p = 0.05),
+                
+                # This resize is required to provide a correct input 
+                # to a pretrained ViT
+                transforms.Resize((224,224)),
+
+                # Normalize train dataset with its mean and standard deviation
+                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+            ])
+
+            test_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+
+                # This resize is required to provide a correct input 
+                # to a pretrained ViT
+                transforms.Resize((224,224)),
+
+                # Normalize test dataset with its mean and standard deviation
+                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+            ])
+        
+        else:
+
+            train_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+        
+                # Allow random horizontal flips (data augmentation)
+                transforms.RandomHorizontalFlip(p = 0.25),
+
+                # Allow random vertical flips (data augmentation)
+                transforms.RandomVerticalFlip(p = 0.05),
+
+                # This resize is required to provide a correct input 
+                # to a pretrained ViT
+                transforms.Resize((224,224)),
+            
+                # Normalize train dataset with its mean and standard deviation
+                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+            ])
+
+            test_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+                
+                # This resize is required to provide a correct input 
+                # to a pretrained ViT
+                transforms.Resize((224,224)),
+
+                # Normalize test dataset with its mean and standard deviation
+                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+            ])
+
+    # Not a ViT model
+    else:
+        
+        if pca:
+
+            train_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+            
+                # Allow random horizontal flips (data augmentation)
+                transforms.RandomHorizontalFlip(p = 0.25),
+
+                # Allow random vertical flips (data augmentation)
+                transforms.RandomVerticalFlip(p = 0.05),
+
+                # Normalize train dataset with its mean and standard deviation
+                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+            ])
+
+            test_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+
+                # Normalize test dataset with its mean and standard deviation
+                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+            ])
+        
+        else:
+
+            train_transform = transforms.Compose([
+
+                # Convert to tensor
+                transforms.ToTensor(),
+        
+                # Allow random horizontal flips (data augmentation)
+                transforms.RandomHorizontalFlip(p = 0.25),
+
+                # Allow random vertical flips (data augmentation)
+                transforms.RandomVerticalFlip(p = 0.05),
+
+                # Normalize train dataset with its mean and standard deviation
+                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+            ])
+
+            test_transform = transforms.Compose([
+                
+                # Convert to tensor
+                transforms.ToTensor(),
+                
+                # Normalize test dataset with its mean and standard deviation
+                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+            ])
+
+
+    return train_transform, test_transform
+
+
+def load_pca_matrix(n_components):
+
+    # Available components
+    comp = [1,2,5,10,25,50,100,250,500,1000,1500,2000,2500]
+
+    assert n_components in comp, "Error, " + str(n_components) + " components not available. Accepted components: " + ', '.join(comp)
+
+    pca = {'red': None,
+           'green': None,
+           'blue': None}
+
+    # Load pca matrix
+    pca['red'] = pickle.load(open('data_projection/pca_red_' + str(n_components) + '.p','rb'))
+    pca['green'] = pickle.load(open('data_projection/pca_green_' + str(n_components) + '.p','rb'))
+    pca['blue'] = pickle.load(open('data_projection/pca_blue_' + str(n_components) + '.p','rb'))
+
+    return pca
+
+def apply_pca(red, green, blue, pca):
+    """
+    Projects an image using PCA. The image must be split before into
+    the 3 principal channels
+    Args:
+        red: Red channel
+        green: Green channel
+        blue: Blue channel
+        red_pca: PCA matrix of the red channel
+        green_pca: PCA matrix of the green channel
+        blue_pca: PCA matrix of the blue channel     
+    Return:
+        img: Numpy array of the reconstructed RGB image
+    """
+    # Project data to lower dimensions
+    new_red = pca['red'].transform([ red.flatten() ])
+    new_green = pca['green'].transform([ green.flatten() ])
+    new_blue = pca['blue'].transform([ blue.flatten() ])
+
+    # Reconstruct data
+    new_red = pca['red'].inverse_transform(new_red)
+    new_green = pca['green'].inverse_transform(new_green)
+    new_blue = pca['blue'].inverse_transform(new_blue)
+
+    # Reshape into an image
+    new_red = new_red.reshape(50,50)
+    new_green = new_green.reshape(50,50)
+    new_blue = new_blue.reshape(50,50)
+
+    # Merge channels
+    img = (merge((new_blue, new_green, new_red)))
+
+
+    return img
 
 def interval95(acc,data):
     """

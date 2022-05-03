@@ -8,7 +8,7 @@ from dataset import BreastCancerDataset
 
 from train import *
 
-from utils import interval95, plot, get_mean_and_std, compute_and_plot_stats, build_optimizer, build_model
+from utils import interval95, plot, get_mean_and_std, compute_and_plot_stats, build_optimizer, build_model, build_transforms, load_pca_matrix
 
 from torch import optim, device, Generator
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, ExponentialLR
@@ -22,8 +22,8 @@ parser = arg.ArgumentParser(description= 'Train or test a CNN or ViT with the br
 # Path to data
 parser.add_argument('-d', '--data', dest = 'path', default = 'data', type=str, help= 'Path to dataset')
 
-# Neural network
-parser.add_argument('-n', '--net', dest = 'net', default = 'lenet', type=str, help= 'Neural network to train')
+# Model
+parser.add_argument('-n', '--net', dest = 'net', default = 'lenet', type=str, help= 'Model to train')
 
 # Number of epochs
 parser.add_argument('-e', '--epochs', dest= 'num_epochs', default= 1, type=int, help= "Number of epochs in training")
@@ -42,6 +42,16 @@ parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=F
 
 # Name used for the files generated as output (plots)
 parser.add_argument('-na', '--name', dest = 'file_name',default="output", type=str,help= 'Name used for the files generated as output (plots)')
+
+
+# Mutually exclusive group for PCA and t-SNE
+projection_group = parser.add_mutually_exclusive_group()
+
+# Number of components for PCA projection
+projection_group.add_argument('-p', '--pca', dest = 'pca_components',default=None, type=int,help= 'Number of components for PCA projection. Can not be used with t-SNE')
+
+# Number of components for t-SNE projection
+projection_group.add_argument('-s', '--sne', dest = 'sne_components',default=None, type=int,help= 'Number of components for t-SNE projection. Can not be used with PCA.')
 
 # --------------- Global variables ---------------
 
@@ -65,6 +75,10 @@ model, optimizer = None,None
 
 test_samples = 0
 file_name = None
+
+# PCA Matrix
+pca = None
+
 # ---------------------------------------------
 def set_up_training(args):
     """
@@ -73,16 +87,22 @@ def set_up_training(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global best_accuracy, best_class_accuracy, file_name, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
+    global best_accuracy, best_class_accuracy, file_name, n_components, model_name, model, optimizer, pca,  trainloader, testloader, scheduler, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
 
     # Obtain output file name
     file_name = args.file_name
+    
+    # Obtain number of components for PCA dimensionality reduction
+    pca_components = args.pca_components
+
+    # Obtain number of components for t-SNE dimensionality reduction
+    sne_components = args.sne_components
 
     # Model
-    print('Building model..')
+    print('Building model...')
     model = build_model(model_name)
 
     if os.path.isfile('./pretrained/' + file_name + '.pth'):
@@ -102,44 +122,30 @@ def set_up_training(args):
 
 
     # Get optimizer
+    print('Loading optimizer...')
     optimizer = args.optimizer.lower()
     optimizer = build_optimizer(optimizer) (model.parameters(), lr= 1e-3)
 
     # Build scheduler
-    scheduler = ExponentialLR(optimizer, gamma = 0.99,verbose=True)
+    scheduler = ExponentialLR(optimizer, gamma = 0.95, verbose=True)
 
-    # Train transformations
-    train_transform = transforms.Compose([
+    # Data augmentation
+    print("Loading data augmentation transforms...")
+    train_transform, test_transform = build_transforms(model_name, pca_components is not None)
 
-        # Allow random horizontal flips (data augmentation)
-        transforms.RandomHorizontalFlip(p = 0.25),
+    # Load PCA matrix
+    if pca_components is not None:
+        print("Loading PCA matrix...")
+        pca = load_pca_matrix(pca_components)    
 
-        # Allow random vertical flips (data augmentation)
-        transforms.RandomVerticalFlip(p = 0.05),
-
-        # Transform images to tensors
-        transforms.ToTensor(),
-
-        # Normalize train dataset with its mean and standard deviation
-        transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
-    ])
-
-    test_transform = transforms.Compose([
-        # Transform images to tensors
-        transforms.ToTensor(),
-
-        # Normalize test dataset with its mean and standard deviation
-        transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
-    ])
-    
     # Get training dataset (122400 images) with rotations
     print("Loading training dataset...")
-    training_data = BreastCancerDataset(args.path + 'train/', transforms = train_transform, angles = [0, 90, -90])
+    training_data = BreastCancerDataset(args.path + 'train/', transforms = train_transform, angles = [0, 90, -90], pca = pca)
     print("Loaded %d images" % len(training_data))
 
     # Get validation dataset (13600 images)
     print("Loading validation dataset...")
-    test_data = BreastCancerDataset(args.path + 'validation/', transforms = test_transform)
+    test_data = BreastCancerDataset(args.path + 'validation/', transforms = test_transform, pca = pca)
     print("Loaded %d images" % len(test_data))
 
     test_samples = len(test_data)
@@ -162,7 +168,7 @@ def setup_test(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global file_name, model_name, model, testloader, test_samples
+    global file_name, model_name, model, pca, testloader, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
@@ -170,25 +176,28 @@ def setup_test(args):
     # Obtain output file name
     file_name = args.file_name
     
-    
+    # Obtain number of components for PCA dimensionality reduction
+    pca_components = args.pca_components
+
+    # Obtain number of components for t-SNE dimensionality reduction
+    sne_components = args.sne_components
+
+    # Load PCA matrix
+    if pca_components is not None:
+        print("Loading PCA matrix...")
+        pca = load_pca_matrix(pca_components)    
+
     # Model
     print('Building model..')
     model = build_model(model_name)
     model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth')['model'] )
     model.to(device)
 
-    test_transform = transforms.Compose([
-        # Transform images to tensors
-        transforms.ToTensor(),
-
-        # Normalize test dataset with its mean and standard deviation
-        transforms.Normalize((0.7585, 0.5622, 0.6866), (0.1492, 0.1961, 0.1423)),
-
-    ])
+    _, test_transform = build_transforms(model_name, pca_components is not None)
 
     # Get test dataset (15110 images)
     print("Loading test dataset...")
-    test_data = BreastCancerDataset(args.path, transforms = test_transform)
+    test_data = BreastCancerDataset(args.path, transforms = test_transform, pca = pca)
     print("Loaded %d images" % len(test_data))
     test_samples = len(test_data)
 
