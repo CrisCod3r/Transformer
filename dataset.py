@@ -22,15 +22,30 @@ import numpy as np
 
 
 class BreastCancerDataset(Dataset):
-    def __init__(self, data_dir, transforms = transforms.ToTensor(), angles = None, pca = None):
+    def __init__(self, data_dir: str, transfs: transforms.transforms.Compose = transforms.Compose([ transforms.ToTensor() ]), angles: list = None, pca: dict = None):
         """
-        Dataset created from images where the class is embedded in the file name
+        Dataset for breast histopathology images where the label is embedded in the file.
+
         Args:
-            data_dir: Path to the images
-            transform: List of transformations to apply to the images
-        """
+            data_dir (str): Path to the images
+            transforms (transforms.transforms.Compose, optional): Transform to apply to the images for data augmentation. Defaults to transforms.ToTensor().
+            angles (list, optional): List of integers which each one indicates an angle to perform a discrete rotation. None means no rotations will be done. Defaults to None.
+            pca (dict, optional): PCA matrix for all 3 color channels. None means no PCA will be applied.Defaults to None.
+
+        Raises:
+            OSError: Path to images not found
+            TypeError: The given path is not a string
+            TypeError: The given transforms are not torchvision.transforms.transforms.Compose.
+            TypeError: The given angles are not a list
+            TypeError: The given PCA matrix is not a dictionary.
+        """        
         if not path.isdir(data_dir):
             raise OSError ('Directory not found')
+        
+        if not isinstance(data_dir, str): raise TypeError('"data_dir" must be a str.')
+        if not isinstance(transfs, transforms.transforms.Compose): raise TypeError('"transfs" must be a torchvision.transforms.transforms.Compose.')
+        if not ( angles is None or isinstance(angles, list) ): raise TypeError('"angles" must be a list of integer.')
+        if not ( pca is None or isinstance(pca, dict) ): raise TypeError('"pca" must be a dictionary.')
 
         # Image list
         self.image_list = glob.glob(data_dir + '*')
@@ -39,7 +54,7 @@ class BreastCancerDataset(Dataset):
         self.data_len = len(self.image_list)
             
         # Function to transform images
-        self.transform = transforms
+        self.transfs = transfs
 
         # List containing a discrete rotation set
         self.angles = angles
@@ -73,7 +88,7 @@ class BreastCancerDataset(Dataset):
             img = Image.open(img_path)
 
         # Apply transforms 
-        tensor = self.transform(img).float()
+        tensor = self.transfs(img).float()
 
         # Rotate the image.
         if self.angles is not None:

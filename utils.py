@@ -27,6 +27,7 @@ import sys
 import time
 import os
 import math
+from typing import Union
 
 # For PCA projection
 from cv2 import merge
@@ -39,7 +40,7 @@ begin_time = last_time
 # _, term_width = os.popen('stty size', 'r').read().split()
 # term_width = int(term_width)
 
-# Comment this next linei f you want to see the output in the terminal
+# Comment this next line if you want to see the output in the terminal
 term_width = 100
 
 def progress_bar(current, total, msg=None):
@@ -130,14 +131,26 @@ def format_time(seconds):
     return f
 
 
-def build_model(model_name):
+def build_model(model_name:str) -> nn.Module:
+    """
+    Function that builds the model to train based on the provided name.
+
+    Args:
+        model_name (str): The name of the model to build.
+
+    Raises:
+        ValueError: The given name of the model is not available.
+
+    Returns:
+        nn.Module: The model to train.
+    """    
 
     # Available models
     net_models = ["alexnet", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
     "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
-    assert model_name in net_models, "Error, unrecognized model.\n Available models: " + ', '.join(net_models)
+    if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
 
     if model_name == "alexnet":
         return AlexNet()
@@ -212,12 +225,24 @@ def build_model(model_name):
     if model_name == "vgg19":
         return models.vgg19_bn(pretrained = True)
 
-def build_optimizer(optimizer_name):
+def build_optimizer(optimizer_name: str) -> torch.optim.Optimizer:
 
+    """
+    Function that builds the optimizer to train based on the provided name.
+
+    Args:
+        optimizer_name (str): The name of the optimizer to build.
+
+    Raises:
+        ValueError: The given name of the optimizer is not available.
+
+    Returns:
+        torch.optim: The optimizer (without initializing the parameters).
+    """    
     # Available optimizers
     optimizers = ['sgd','adam','adadelta','adagrad']
 
-    assert optimizer_name in optimizers, "Error, unrecognized optimizer.\n Available optimizer: " + ', '.join(optimizers)
+    if optimizer_name not in optimizers: raise ValueError('"optimizer_name" must be one of the available models: ' + ','.join(optimizers))
 
     if optimizer_name == "sgd":
         return torch.optim.SGD
@@ -231,19 +256,34 @@ def build_optimizer(optimizer_name):
     if optimizer_name == "adagrad":
         return torch.optim.Adagrad
 
-def build_transforms(model_name, pca):
+def build_transforms(model_name:str, pca:bool) -> list:
+
+    """
+    Function that builds the transforms to apply to the data based on the provided name.
+
+    Args:
+        model_name (str): The name of the model to build.
+        pca (bool): Whether to apply PCA.
+
+    Raises:
+        ValueError: The given name of the model is not available.
+        TypeError: The given boolean is not a boolean. (True or False)
+
+    Returns:
+        list: The transforms to apply to the training data.
+        list: The transforms to apply to the test data.
+    """    
 
     # Available models
     net_models = ["alexnet", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
     "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
-    assert model_name in net_models, "Error, unrecognized model.\n Available models: " + ', '.join(net_models)
-    assert type(pca) == bool, "Error, parameter pca must be a boolean."
+    if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
+    if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
     if model_name == 'vit_b_16' or model_name == 'vit_l_16':
         
-        # If PCA is used, ToTensor() can not be used
         if pca:
 
             train_transform = transforms.Compose([
@@ -371,12 +411,25 @@ def build_transforms(model_name, pca):
     return train_transform, test_transform
 
 
-def load_pca_matrix(n_components):
+def load_pca_matrix(n_components: int) -> dict:
+
+    """
+    Loads the PCA matrix.
+
+    Args:
+        n_components (int): The number of components to keep.
+
+    Raises:
+        ValueError: The given number of components is not available.
+
+    Returns:
+        dict: Dictionary with the PCA matrix for each of the 3 channels
+    """    
 
     # Available components
     comp = [1,2,5,10,25,50,100,250,500,1000,1500,2000,2500]
 
-    assert n_components in comp, "Error, " + str(n_components) + " components not available. Accepted components: " + ', '.join(comp)
+    if n_components not in comp: raise ValueError('"n_components" must be one of the available components: ' + ','.join(comp))
 
     pca = {'red': None,
            'green': None,
@@ -389,20 +442,28 @@ def load_pca_matrix(n_components):
 
     return pca
 
-def apply_pca(red, green, blue, pca):
+def apply_pca(red: np.ndarray, green: np.ndarray, blue: np.ndarray, pca:dict) -> np.ndarray:
+
     """
-    Projects an image using PCA. The image must be split before into
-    the 3 principal channels
+    Applies the PCA matrix to the given data.
+
     Args:
-        red: Red channel
-        green: Green channel
-        blue: Blue channel
-        red_pca: PCA matrix of the red channel
-        green_pca: PCA matrix of the green channel
-        blue_pca: PCA matrix of the blue channel     
-    Return:
-        img: Numpy array of the reconstructed RGB image
-    """
+        red (np.ndarray): The red channel.
+        green (np.ndarray): The green channel.
+        blue (np.ndarray): The blue channel.
+        pca (dict): The PCA matrix.
+
+    Raises:
+        TypeError: The given data is not a numpy array.
+
+    Returns:
+        np.ndarray: The projected data.
+    """    
+
+    if not isinstance(red, np.ndarray): raise TypeError('"red" must be a numpy ndarray')
+    if not isinstance(green, np.ndarray): raise TypeError('"green" must be a numpy ndarray')
+    if not isinstance(blue, np.ndarray): raise TypeError('"blue" must be a numpy ndarray')
+    
     # Project data to lower dimensions
     new_red = pca['red'].transform([ red.flatten() ])
     new_green = pca['green'].transform([ green.flatten() ])
@@ -424,16 +485,20 @@ def apply_pca(red, green, blue, pca):
 
     return img
 
-def interval95(acc,data):
+def interval95(acc:float, n_data:int) -> float:
+
     """
-    Calculates accuracy confidence interval at 95%
+    Calculates the confidence interval 95% on a given number of samples.
+
     Args:
-        acc: Accuracy (in %)
-        data: Number of samples used for testing
-    Returns the interval boundary.
-    """
+        acc (float): The accuracy.
+        n_data (int): The number of samples.
+
+    Returns:
+        float: The confidence interval.
+    """    
     
-    bound = 1.96 * math.sqrt((acc*(1-acc)) / data)
+    bound = 1.96 * math.sqrt((acc*(1-acc)) / n_data)
 
     return bound
 
@@ -471,13 +536,23 @@ def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
     return True
 
 
-def get_mean_and_std(dataloader):
-    """
-    Computes mean and standard deviation of a dataset given its loader
-    Args:
-        dataloader: Dataset loader (could be any)
-    """
+def get_mean_and_std(dataloader: torch.utils.data.DataLoader) -> (float, float):
 
+    """
+    Computes the mean and standard deviation of the dataset.
+
+    Args:  
+        dataloader (torch.utils.data.DataLoader): The dataloader.
+
+    Raises:
+        TypeError: The given data is not a torch.utils.data.DataLoader.
+
+
+    Returns:
+        tuple: The mean of the dataset.
+        tuple: The standard deviation of the dataset.
+    """    
+    if not isinstance(dataloader, torch.utils.data.DataLoader): raise TypeError('"dataloader" must be a torch.utils.data.DataLoader')
 
     channels_sum, channels_squared_sum, num_batches = 0, 0, 0
 
@@ -495,24 +570,48 @@ def get_mean_and_std(dataloader):
 
     return data_mean, std
     
-def count_parameters(model):
+def count_parameters(model: nn.Module) -> int:
     """
-    Returns the amount of trainable parameters in a model
+    Counts the number of trainable parameters in a model.
+
     Args:
-        model: NN model
-    """
+        model (nn.Module): The model.
+
+    Raises:
+        TypeError: The given data is not a nn.Module.
+
+    Returns:
+        int: The number of trainable parameters.
+    """ 
+
+
+    if not isinstance(model, nn.Module): raise TypeError('"model" must be a nn.Module')
 
     return sum(param.numel() for param in model.parameters() if param.requires_grad)
 
     
-def plot_confusion_matrix(true_labels, predicted_labels, file_name):
+def plot_confusion_matrix(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], file_name: str) -> float:
+
     """
-    Plots the confussion matrix of a model
+    Plots the confusion matrix given true and predicted labels.
+
     Args:
-        true_labels : Array of shape 1D with the true labels
-        predicted_labels : Array of shape 1D with the predicted labels
-        file_name: Name of the model used
-    """
+        true_labels (list): The true labels.
+        predicted_labels (list): The predicted labels.
+        file_name (str): The name of the file where the plot will be saved.
+
+    Raises:
+        TypeError: The given data is not a list.
+        TypeError: The given data is not a str.
+
+    Returns:
+        float: The specificity of the model.
+    """    
+
+    if not (isinstance(true_labels, list) or isinstance(true_labels, np.ndarray)): raise TypeError('"true_labels" must be a list or numpy ndarray')
+    if not (isinstance(predicted_labels, list) or  isinstance(predicted_labels, np.ndarray)): raise TypeError('"predicted_labels" must be a list or a numpy ndarray')
+    if not isinstance(file_name, str): raise TypeError('"file_name" must be a str')
+
     # Build confusion matrix
     cf_matrix = confusion_matrix(true_labels, predicted_labels)
 
@@ -532,8 +631,8 @@ def plot_confusion_matrix(true_labels, predicted_labels, file_name):
 
     ax = sn.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues_r',cbar = False)
     ax.set_title(file_name+ " Confusion Matrix")
-    ax.set_xlabel('Predicted class')
-    ax.set_ylabel('True class ')
+    ax.set_xlabel('Predicted label')
+    ax.set_ylabel('True label ')
 
     # Axis labels
     ax.xaxis.set_ticklabels(['Benign','Malignant'])
@@ -546,17 +645,33 @@ def plot_confusion_matrix(true_labels, predicted_labels, file_name):
     
     return specificity
 
-def plot_roc_auc(fpr, tpr, auc_value, file_name):
+def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: str) -> None:
     """
-    Plots the ROC-AUC curve
+    Plots the ROC curve.
+
     Args:
-        fpr: False positive rate
-        tpr: True positive rate
-        auc: Area under the curve
-        file_name: Name of the model used
-    """
+        fpr (np.ndarray): The false positive rate.
+        tpr (np.ndarray): The true positive rate.
+        auc_value (float): The area under the curve.
+        file_name (str): The name of the file where the plot will be saved.
+
+    Raises:
+        TypeError: The given false positive rate is not a np.ndarray.
+        TypeError: The given true positive rate is not a np.ndarray.
+        TypeError: The given area under the curve is not a float.
+        TypeError: The given file name is not a str.
+
+    Returns:
+        None: The plot is saved.
+    """    
+
+    if not isinstance(fpr, np.ndarray): raise TypeError('"fpr" must be a list or numpy ndarray')
+    if not isinstance(tpr, np.ndarray): raise TypeError('"tpr" must be a list or a numpy ndarray')
+    if not isinstance(auc_value, float): raise TypeError('"auc_value" must be a float')
+    if not isinstance(file_name, str): raise TypeError('"file_name" must be a string')
+
     # Title of the plot
-    plt.title('Receiver Operating Characteristic ('  + file_name + ')' )
+    plt.title('Receiver Operating Characteristic')
 
     # Plot ROC-AUC
     plt.plot(fpr,tpr,label = 'AUC = %0.3f' % auc_value)
@@ -579,13 +694,27 @@ def plot_roc_auc(fpr, tpr, auc_value, file_name):
     return 
 
 
-def compute_stats(true_labels, predicted_labels):
+def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray]) -> (float, float, float, float, np.ndarray, np.ndarray, np.ndarray, float):
     """
-    Computes the basic metrics of the model
+    Computes the accuracy, precision, recall, specificity, f1-score and ROC-AUC of the model.
+
     Args:
-        true_labels : Array of shape 1D with the true labels
-        predicted_labels : Array of shape 1D with the predicted labels
-    """
+        true_labels (list): The true labels.
+        predicted_labels (list): The predicted labels.
+
+    Returns:
+        float: The precision of the model.
+        float: The recall of the model.
+        float: The f_score of the model.
+        float: The balanced accuracy of the model.
+        np.ndarray: The false positive rate.
+        np.ndarray: The true positive rate.
+        np.ndarray: The threshold of the ROC-AUC curve.
+        float: The AUC value of the model
+    """    
+    if not (isinstance(true_labels, list) or isinstance(true_labels, np.ndarray)): raise TypeError('"true_labels" must be a list or numpy ndarray')
+    if not (isinstance(predicted_labels, list) or  isinstance(predicted_labels, np.ndarray)): raise TypeError('"predicted_labels" must be a list or a numpy ndarray')
+
     # Precision
     precision = precision_score(y_true = true_labels, y_pred = predicted_labels)
 
@@ -606,7 +735,30 @@ def compute_stats(true_labels, predicted_labels):
 
     return precision, recall, f_score, bac, fpr, tpr, threshold, auc_value
 
-def compute_and_plot_stats(true_labels, predicted_labels, file_name):
+def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], file_name: str) -> (float, float, float, float, float):
+
+    """
+    Computes and plots the accuracy, precision, recall, specificity, f1-score and ROC-AUC of the model.
+
+    Args:
+        true_labels (list): The true labels.
+        predicted_labels (list): The predicted labels.
+        file_name (str): The name of the model used.
+
+    Raises:
+        TypeError: The given labels is not a list.
+        TypeError: The given name is not a str.
+
+    Returns:
+        float: The precision of the model.
+        float: The recall of the model.
+        float: The specificity of the model.
+        float: The f_score of the model.
+        float: The balanced accuracy of the model.
+    """    
+    if not (isinstance(true_labels, list) or isinstance(true_labels, np.ndarray)): raise TypeError('"true_labels" must be a list or numpy ndarray')
+    if not (isinstance(predicted_labels, list) or  isinstance(predicted_labels, np.ndarray)): raise TypeError('"predicted_labels" must be a list or a numpy ndarray')
+    if not isinstance(file_name, str): raise TypeError('"file_name" must be a str')
 
     precision, recall ,f_score , bac, fpr, tpr, threshold, auc_value = compute_stats(true_labels, predicted_labels)
 

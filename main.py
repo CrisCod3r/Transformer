@@ -140,12 +140,12 @@ def set_up_training(args):
 
     # Get training dataset (122400 images) with rotations
     print("Loading training dataset...")
-    training_data = BreastCancerDataset(args.path + 'train/', transforms = train_transform, angles = [0, 90, -90], pca = pca)
+    training_data = BreastCancerDataset(args.path + 'train/', transfs = train_transform, angles = [0, 90, -90], pca = pca)
     print("Loaded %d images" % len(training_data))
 
     # Get validation dataset (13600 images)
     print("Loading validation dataset...")
-    test_data = BreastCancerDataset(args.path + 'validation/', transforms = test_transform, pca = pca)
+    test_data = BreastCancerDataset(args.path + 'validation/', transfs = test_transform, pca = pca)
     print("Loaded %d images" % len(test_data))
 
     test_samples = len(test_data)
@@ -197,7 +197,7 @@ def setup_test(args):
 
     # Get test dataset (15110 images)
     print("Loading test dataset...")
-    test_data = BreastCancerDataset(args.path, transforms = test_transform, pca = pca)
+    test_data = BreastCancerDataset(args.path, transfs = test_transform, pca = pca)
     print("Loaded %d images" % len(test_data))
     test_samples = len(test_data)
 
@@ -223,7 +223,7 @@ def train_model(num_epochs):
 
         train(criterion, device, epoch, model, optimizer, scheduler, trainloader)
 
-        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, file_name, model, model_name, optimizer, testloader)
+        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, file_name, model, testloader)
 
         if test_acc > best_accuracy:
             best_accuracy = test_acc 
