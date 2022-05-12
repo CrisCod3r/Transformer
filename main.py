@@ -1,19 +1,19 @@
+# PyTorch
 import torch
+from torch import device
+from torch.optim.lr_scheduler import ExponentialLR
+from torch.utils.data import  DataLoader
 
-import torchvision
-import torchvision.transforms as transforms
-
-
+# Dataset
 from dataset import BreastCancerDataset
 
+# Training and testing loops
 from train import *
 
-from utils import interval95, plot, get_mean_and_std, compute_and_plot_stats, build_optimizer, build_model, build_transforms, load_pca_matrix
+# Utils
+from utils import interval95, compute_and_plot_stats, build_optimizer, build_model, build_transforms, load_pca_matrix
 
-from torch import optim, device, Generator
-from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau, ExponentialLR
-from torch.utils.data import Dataset, DataLoader, random_split
-
+# Others
 import argparse as arg
 import os
 
@@ -43,15 +43,10 @@ parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=F
 # Name used for the files generated as output (plots)
 parser.add_argument('-na', '--name', dest = 'file_name',default="output", type=str,help= 'Name used for the files generated as output (plots)')
 
-
-# Mutually exclusive group for PCA and t-SNE
-projection_group = parser.add_mutually_exclusive_group()
-
 # Number of components for PCA projection
-projection_group.add_argument('-p', '--pca', dest = 'pca_components',default=None, type=int,help= 'Number of components for PCA projection. Can not be used with t-SNE')
+parser.add_argument('-p', '--pca', dest = 'pca_components',default=None, type=int,help= 'Number of components for PCA projection. If not used, no PCA projection will be applied')
 
-# Number of components for t-SNE projection
-projection_group.add_argument('-s', '--sne', dest = 'sne_components',default=None, type=int,help= 'Number of components for t-SNE projection. Can not be used with PCA.')
+
 
 # --------------- Global variables ---------------
 
@@ -98,9 +93,6 @@ def set_up_training(args):
     # Obtain number of components for PCA dimensionality reduction
     pca_components = args.pca_components
 
-    # Obtain number of components for t-SNE dimensionality reduction
-    sne_components = args.sne_components
-
     # Model
     print('Building model...')
     model = build_model(model_name)
@@ -124,7 +116,7 @@ def set_up_training(args):
     # Get optimizer
     print('Loading optimizer...')
     optimizer = args.optimizer.lower()
-    optimizer = build_optimizer(optimizer) (model.parameters(), lr= 1e-3)
+    optimizer = build_optimizer(model, optimizer) 
 
     # Build scheduler
     scheduler = ExponentialLR(optimizer, gamma = 0.95, verbose=True)
@@ -179,9 +171,6 @@ def setup_test(args):
     # Obtain number of components for PCA dimensionality reduction
     pca_components = args.pca_components
 
-    # Obtain number of components for t-SNE dimensionality reduction
-    sne_components = args.sne_components
-
     # Load PCA matrix
     if pca_components is not None:
         print("Loading PCA matrix...")
@@ -209,11 +198,13 @@ def setup_test(args):
 
 
 
-def train_model(num_epochs):
+def train_model(num_epochs: int) -> None:
     """
     Trains the neural network
     Args:
-        num_epochs: Number of epochs
+        num_epochs (int): Number of epochs
+
+    Returns: None
     """
     global best_accuracy, best_class_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples, file_name
     
@@ -221,7 +212,7 @@ def train_model(num_epochs):
         
     for epoch in range(num_epochs):
 
-        train(criterion, device, epoch, model, optimizer, scheduler, trainloader)
+        train(criterion, device, epoch, model, model_name, optimizer, scheduler, trainloader)
 
         test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, file_name, model, testloader)
 
@@ -237,7 +228,7 @@ def train_model(num_epochs):
 
     # Obtain predictions
     print("Obtaining predictions...")
-    true_labels, predicted_labels = test_and_return(device, model, testloader)
+    true_labels, predicted_labels = predict(device, model, testloader)
 
     # Compute and plot metrics
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
@@ -261,7 +252,7 @@ def test_model():
     print("Obtaining predictions...")
 
     # Obtain predictions
-    true_labels, predicted_labels = test_and_return(device, model, testloader)
+    true_labels, predicted_labels = predict(device, model, testloader)
 
     # Compute and plot metrics
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)

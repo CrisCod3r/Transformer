@@ -1,16 +1,14 @@
-from scipy.interpolate import make_interp_spline
-
-import numpy as np
-from numpy import linspace as linspace
-import matplotlib.pyplot as plt
-
 # PyTorch utils
 import torch
 from torch import mean
 import torchvision.transforms as transforms
+from adabound import AdaBound
 
+# For plotting
 import seaborn as sn
-import pandas as pd
+from numpy import linspace as linspace
+import matplotlib.pyplot as plt
+from scipy.interpolate import make_interp_spline
 
 # Sklearn metrics
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
@@ -20,14 +18,18 @@ from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 import torchvision.models as models
 from models.LeNet5 import *
 from models.AlexNet import *
+from models.IDCNet import *
+from vit_pytorch.distill import DistillableViT, DistillWrapper
+
+# Utils
+import numpy as np
 
 # Others
 import pickle
 import sys
 import time
-import os
 import math
-from typing import Union
+from typing import Union, Tuple
 
 # For PCA projection
 from cv2 import merge
@@ -131,7 +133,7 @@ def format_time(seconds):
     return f
 
 
-def build_model(model_name:str) -> nn.Module:
+def build_model(model_name: str) -> nn.Module:
     """
     Function that builds the model to train based on the provided name.
 
@@ -139,6 +141,7 @@ def build_model(model_name:str) -> nn.Module:
         model_name (str): The name of the model to build.
 
     Raises:
+        TypeError: The given model_name is not a str
         ValueError: The given name of the model is not available.
 
     Returns:
@@ -146,14 +149,52 @@ def build_model(model_name:str) -> nn.Module:
     """    
 
     # Available models
-    net_models = ["alexnet", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
-    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
+    net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "deit" , "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
+    if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
     if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
 
     if model_name == "alexnet":
         return AlexNet()
+
+    if model_name == "convnext_tiny":
+        return models.convnext_tiny(pretrained = True)
+    
+    if model_name == "convnext_small":
+        return models.convnext_small(pretrained = True)
+    
+    if model_name == "convnext_base":
+        return models.convnext_base(pretrained = True)
+    
+    if model_name == "convnext_large":
+        return models.convnext_large(pretrained = True)
+
+    if model_name == "deit":
+
+        v = DistillableViT(
+            image_size = 50,
+            patch_size = 10,
+            num_classes = 2,
+            dim = 1024,
+            depth = 6,
+            heads = 8,
+            mlp_dim = 2048,
+            dropout = 0.1,
+            emb_dropout = 0.1)
+
+        teacher = LeNet5()
+        deit = DistillWrapper(
+            student = v,
+            teacher = teacher,
+            temperature = 3,
+            alpha = 0.5,
+            hard = True
+        )
+
+        return deit
+
 
     if model_name == "densenet121":
         return models.densenet121(pretrained = True)
@@ -188,6 +229,9 @@ def build_model(model_name:str) -> nn.Module:
     # Note: Not pretrained googlenet outputs an error for training loop
     if model_name == "googlenet":
         return models.googlenet(pretrained = True)
+    
+    if model_name == "idcnet":
+        return IDCNet()
 
     if model_name == "lenet5":
         return LeNet5()
@@ -225,7 +269,7 @@ def build_model(model_name:str) -> nn.Module:
     if model_name == "vgg19":
         return models.vgg19_bn(pretrained = True)
 
-def build_optimizer(optimizer_name: str) -> torch.optim.Optimizer:
+def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.Optimizer:
 
     """
     Function that builds the optimizer to train based on the provided name.
@@ -234,27 +278,29 @@ def build_optimizer(optimizer_name: str) -> torch.optim.Optimizer:
         optimizer_name (str): The name of the optimizer to build.
 
     Raises:
+        TypeError: The given model is not a torch.nn.Module
+        TypeError: The given model name is not a string.
         ValueError: The given name of the optimizer is not available.
 
     Returns:
         torch.optim: The optimizer (without initializing the parameters).
     """    
     # Available optimizers
-    optimizers = ['sgd','adam','adadelta','adagrad']
+    optimizers = ['sgd','adam','adabound']
 
+    if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module')
+    if not isinstance(optimizer_name, str): raise TypeError('"optimizer_name" must be a str')
     if optimizer_name not in optimizers: raise ValueError('"optimizer_name" must be one of the available models: ' + ','.join(optimizers))
 
     if optimizer_name == "sgd":
-        return torch.optim.SGD
+        return torch.optim.SGD(model.parameters(), lr= 1e-3, momentum = 0.9)
 
     if optimizer_name == "adam":
-        return torch.optim.Adam
+        return torch.optim.Adam(model.parameters(), lr= 1e-3)
 
-    if optimizer_name == "adadelta":
-        return torch.optim.Adadelta
+    if optimizer_name == "adabound":
+        return AdaBound(model.parameters(), lr= 1e-3, final_lr = 0.1)
 
-    if optimizer_name == "adagrad":
-        return torch.optim.Adagrad
 
 def build_transforms(model_name:str, pca:bool) -> list:
 
@@ -275,10 +321,11 @@ def build_transforms(model_name:str, pca:bool) -> list:
     """    
 
     # Available models
-    net_models = ["alexnet", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
-    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
+    net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "deit" , "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
+    if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
     if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
     if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
@@ -427,7 +474,7 @@ def load_pca_matrix(n_components: int) -> dict:
     """    
 
     # Available components
-    comp = [1,2,5,10,25,50,100,250,500,1000,1500,2000,2500]
+    comp = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 1250, 1500, 2000, 2500]
 
     if n_components not in comp: raise ValueError('"n_components" must be one of the available components: ' + ','.join(comp))
 
@@ -536,7 +583,7 @@ def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
     return True
 
 
-def get_mean_and_std(dataloader: torch.utils.data.DataLoader) -> (float, float):
+def get_mean_and_std(dataloader: torch.utils.data.DataLoader) -> Tuple[float, float]:
 
     """
     Computes the mean and standard deviation of the dataset.
@@ -694,7 +741,7 @@ def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: 
     return 
 
 
-def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray]) -> (float, float, float, float, np.ndarray, np.ndarray, np.ndarray, float):
+def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray]) -> Tuple[float, float, float, float, np.ndarray, np.ndarray, np.ndarray, float]:
     """
     Computes the accuracy, precision, recall, specificity, f1-score and ROC-AUC of the model.
 
@@ -735,7 +782,7 @@ def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[
 
     return precision, recall, f_score, bac, fpr, tpr, threshold, auc_value
 
-def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], file_name: str) -> (float, float, float, float, float):
+def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], file_name: str) -> Tuple[float, float, float, float, float]:
 
     """
     Computes and plots the accuracy, precision, recall, specificity, f1-score and ROC-AUC of the model.
