@@ -419,14 +419,7 @@ def build_transforms(model_name:str, pca:bool) -> list:
                 transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
             ])
 
-            test_transform = transforms.Compose([
 
-                # Convert to tensor
-                transforms.ToTensor(),
-
-                # Normalize test dataset with its mean and standard deviation
-                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
-            ])
         
         else:
 
@@ -721,13 +714,13 @@ def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: 
     plt.title('Receiver Operating Characteristic')
 
     # Plot ROC-AUC
-    plt.plot(fpr,tpr,label = 'AUC = %0.3f' % auc_value)
+    plt.plot(fpr,tpr,label = 'AUC = %0.3f' % auc_value, ls = "--")
 
     # Legend
     plt.legend(loc = 'lower right')
 
     # Limits of the X and Y axis
-    plt.plot([0, 1], [0, 1], 'r--')
+    plt.plot([0, 1], [0, 1])
     plt.xlim([0, 1])
     plt.ylim([0, 1])
 
@@ -741,13 +734,19 @@ def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: 
     return 
 
 
-def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray]) -> Tuple[float, float, float, float, np.ndarray, np.ndarray, np.ndarray, float]:
+def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], probabilities: Union[list, np.ndarray]) -> Tuple[float, float, float, float, np.ndarray, np.ndarray, np.ndarray, float]:
     """
     Computes the accuracy, precision, recall, specificity, f1-score and ROC-AUC of the model.
 
     Args:
         true_labels (list): The true labels.
         predicted_labels (list): The predicted labels.
+        file_name (str): The name of the model used.
+
+    Raises:
+        TypeError: The given true labels is not a list or a np.ndarray.
+        TypeError: The given predicted labels is not a list or a np.ndarray.
+        TypeError: The given probabilities is not a list or a np.ndarray.
 
     Returns:
         float: The precision of the model.
@@ -761,6 +760,7 @@ def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[
     """    
     if not (isinstance(true_labels, list) or isinstance(true_labels, np.ndarray)): raise TypeError('"true_labels" must be a list or numpy ndarray')
     if not (isinstance(predicted_labels, list) or  isinstance(predicted_labels, np.ndarray)): raise TypeError('"predicted_labels" must be a list or a numpy ndarray')
+    if not (isinstance(probabilities, list) or isinstance(probabilities, np.ndarray)): raise TypeError('"probabilities" must be a list or numpy ndarray')
 
     # Precision
     precision = precision_score(y_true = true_labels, y_pred = predicted_labels)
@@ -775,14 +775,14 @@ def compute_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[
     bac = balanced_accuracy_score(y_true = true_labels, y_pred = predicted_labels)
     
     # Receiver operating characteristic (ROC)
-    fpr, tpr, threshold = roc_curve(true_labels, predicted_labels)
+    fpr, tpr, _ = roc_curve(true_labels, probabilities)
 
     # Area Under the Curve (AUC)
     auc_value =  auc(fpr, tpr)
 
-    return precision, recall, f_score, bac, fpr, tpr, threshold, auc_value
+    return precision, recall, f_score, bac, fpr, tpr, auc_value
 
-def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], file_name: str) -> Tuple[float, float, float, float, float]:
+def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_labels: Union[list, np.ndarray], probabilities: Union[list, np.ndarray], file_name: str) -> Tuple[float, float, float, float, float]:
 
     """
     Computes and plots the accuracy, precision, recall, specificity, f1-score and ROC-AUC of the model.
@@ -793,7 +793,9 @@ def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_label
         file_name (str): The name of the model used.
 
     Raises:
-        TypeError: The given labels is not a list.
+        TypeError: The given true labels is not a list or a np.ndarray.
+        TypeError: The given predicted labels is not a list or a np.ndarray.
+        TypeError: The given probabilities is not a list or a np.ndarray.
         TypeError: The given name is not a str.
 
     Returns:
@@ -805,12 +807,13 @@ def compute_and_plot_stats(true_labels: Union[list, np.ndarray], predicted_label
     """    
     if not (isinstance(true_labels, list) or isinstance(true_labels, np.ndarray)): raise TypeError('"true_labels" must be a list or numpy ndarray')
     if not (isinstance(predicted_labels, list) or  isinstance(predicted_labels, np.ndarray)): raise TypeError('"predicted_labels" must be a list or a numpy ndarray')
+    if not (isinstance(probabilities, list) or isinstance(probabilities, np.ndarray)): raise TypeError('"probabilities" must be a list or numpy ndarray')
     if not isinstance(file_name, str): raise TypeError('"file_name" must be a str')
 
-    precision, recall ,f_score , bac, fpr, tpr, threshold, auc_value = compute_stats(true_labels, predicted_labels)
+    precision, recall, f_score , bac, fpr, tpr, auc_value = compute_stats(true_labels, predicted_labels, probabilities)
 
     # Plot ROC-AUC curve
-    plot_roc_auc(fpr,tpr,auc_value,file_name)
+    plot_roc_auc(fpr, tpr, auc_value, file_name)
 
     # Plot confussion matrix
     specificity = plot_confusion_matrix(true_labels, predicted_labels, file_name)

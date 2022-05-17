@@ -1,5 +1,6 @@
 #PyTorch
 import torch
+import torch.nn.functional as F
 
 #Utils
 from utils import progress_bar
@@ -150,7 +151,8 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
         TypeError: The given testloader is not DataLoader
     
     Returns:
-        None
+        float: The accuracy of the model
+        list: The accuracy of the model per class
     """    
     if not isinstance(best_acc, float): raise TypeError('"best_acc" must be a float.')
     if not isinstance(classes, list): raise TypeError('"classes" must be a list of strings.')
@@ -287,7 +289,7 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
     total = 0
 
 
-    true_labels, predicted_labels = [], []
+    true_labels, predicted_labels, probabilities = [], [], []
     if not model_name == "deit":
         with torch.no_grad():
 
@@ -297,15 +299,19 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
 
                 # Get predicted output
                 outputs = model(inputs)
-                _, predicted = outputs.max(1)
 
-                # Accumulate true and predicted labels
+                # Get predicted probability and class
+                probs = F.softmax(outputs, dim = 1)
+                predicted_probs, predicted_class = probs.topk(1, dim = 1)
+
+                # Accumulate true, predicted labels and probabilities
                 true_labels.extend( labels.data.tolist() )
-                predicted_labels.extend( predicted.tolist() )
+                predicted_labels.extend( predicted_class.tolist() )
+                probabilities.extend( predicted_probs.tolist() )
 
                 # Add total and correct predictions
                 total += labels.size(0)
-                correct += predicted.eq(labels).sum().item()
+                correct += predicted_class.eq(labels).sum().item()
 
                 # Update progress bar
                 progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
@@ -318,19 +324,23 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
                 inputs, labels = inputs.to(device), labels.to(device)
 
                 # Get predicted output
-                outputs = model.student(inputs)
-                _, predicted = outputs.max(1)
+                outputs = model(inputs)
 
-                # Accumulate true and predicted labels
+                # Get predicted probability and class
+                probs = F.softmax(outputs, dim = 1)
+                predicted_probs, predicted_class = probs.topk(1, dim = 1)
+
+                # Accumulate true, predicted labels and probabilities
                 true_labels.extend( labels.data.tolist() )
-                predicted_labels.extend( predicted.tolist() )
+                predicted_labels.extend( predicted_class.tolist() )
+                probabilities.extend( predicted_probs.tolist() )
 
                 # Add total and correct predictions
                 total += labels.size(0)
-                correct += predicted.eq(labels).sum().item()
+                correct += predicted_class.eq(labels).sum().item()
 
                 # Update progress bar
                 progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
                     % (100.*correct/total, correct, total))
     
-    return true_labels, predicted_labels
+    return true_labels, predicted_labels, probabilities

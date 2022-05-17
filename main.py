@@ -1,6 +1,5 @@
 # PyTorch
 import torch
-from torch import device
 from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import  DataLoader
 
@@ -61,7 +60,7 @@ criterion = torch.nn.CrossEntropyLoss()
 # Scheduler
 scheduler = None
 
-best_accuracy = 0
+best_accuracy = 0.0
 best_class_accuracy = []
 
 
@@ -208,13 +207,13 @@ def train_model(num_epochs: int) -> None:
     """
     global best_accuracy, best_class_accuracy, model_name, model, trainloader, testloader, optimizer, scheduler, test_samples, file_name
     
-    classes = ('benign','malignant')
+    classes = ['benign','malignant']
         
     for epoch in range(num_epochs):
 
         train(criterion, device, epoch, model, model_name, optimizer, scheduler, trainloader)
 
-        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, file_name, model, testloader)
+        test_acc, class_accuracy = test(best_accuracy, classes, criterion, device, epoch, file_name, model, model_name, testloader)
 
         if test_acc > best_accuracy:
             best_accuracy = test_acc 
@@ -228,10 +227,10 @@ def train_model(num_epochs: int) -> None:
 
     # Obtain predictions
     print("Obtaining predictions...")
-    true_labels, predicted_labels = predict(device, model, testloader)
+    true_labels, predicted_labels, probabilities = predict(device, model, model_name, testloader)
 
     # Compute and plot metrics
-    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)
     print("Precision:", precision)
     print("Recall:", recall)
     print("Specificity:", specificity)

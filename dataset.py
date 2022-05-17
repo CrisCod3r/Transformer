@@ -17,9 +17,6 @@ from torch.utils.data.dataset import Dataset
 # Utilities
 from utils import apply_pca
 
-# Others
-import numpy as np
-
 
 class BreastCancerDataset(Dataset):
     def __init__(self, data_dir: str, transfs: transforms.transforms.Compose = transforms.Compose([ transforms.ToTensor() ]), angles: list = None, pca: dict = None):
@@ -44,8 +41,8 @@ class BreastCancerDataset(Dataset):
         
         if not isinstance(data_dir, str): raise TypeError('"data_dir" must be a str.')
         if not isinstance(transfs, transforms.transforms.Compose): raise TypeError('"transfs" must be a torchvision.transforms.transforms.Compose.')
-        if not ( angles is None or isinstance(angles, list) ): raise TypeError('"angles" must be a list of integer.')
-        if not ( pca is None or isinstance(pca, dict) ): raise TypeError('"pca" must be a dictionary.')
+        if not ( angles is None or isinstance(angles, list) ): raise TypeError('"angles" must be a list of integer or None.')
+        if not ( pca is None or isinstance(pca, dict) ): raise TypeError('"pca" must be a dictionary or None.')
 
         # Image list
         self.image_list = glob.glob(data_dir + '*')
