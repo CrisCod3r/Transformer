@@ -43,7 +43,7 @@ begin_time = last_time
 # term_width = int(term_width)
 
 # Comment this next line if you want to see the output in the terminal
-term_width = 100
+term_width = 50
 
 def progress_bar(current, total, msg=None):
     global last_time, begin_time
@@ -335,121 +335,65 @@ def build_transforms(model_name:str, pca:bool) -> list:
 
     if model_name == 'vit_b_16' or model_name == 'vit_l_16':
         
-        if pca:
+        train_transform = transforms.Compose([
 
-            train_transform = transforms.Compose([
-
-                # Convert to tensor
-                transforms.ToTensor(),
-            
-                # Allow random horizontal flips (data augmentation)
-                transforms.RandomHorizontalFlip(p = 0.25),
-
-                # Allow random vertical flips (data augmentation)
-                transforms.RandomVerticalFlip(p = 0.05),
-                
-                # This resize is required to provide a correct input 
-                # to a pretrained ViT
-                transforms.Resize((224,224)),
-
-                # Normalize train dataset with its mean and standard deviation
-                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
-            ])
-
-            test_transform = transforms.Compose([
-
-                # Convert to tensor
-                transforms.ToTensor(),
-
-                # This resize is required to provide a correct input 
-                # to a pretrained ViT
-                transforms.Resize((224,224)),
-
-                # Normalize test dataset with its mean and standard deviation
-                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
-            ])
+            # Convert to tensor
+            transforms.ToTensor(),
         
-        else:
+            # Allow random horizontal flips (data augmentation)
+            transforms.RandomHorizontalFlip(p = 0.25),
 
-            train_transform = transforms.Compose([
-
-                # Convert to tensor
-                transforms.ToTensor(),
-        
-                # Allow random horizontal flips (data augmentation)
-                transforms.RandomHorizontalFlip(p = 0.25),
-
-                # Allow random vertical flips (data augmentation)
-                transforms.RandomVerticalFlip(p = 0.05),
-
-                # This resize is required to provide a correct input 
-                # to a pretrained ViT
-                transforms.Resize((224,224)),
+            # Allow random vertical flips (data augmentation)
+            transforms.RandomVerticalFlip(p = 0.05),
             
-                # Normalize train dataset with its mean and standard deviation
-                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
-            ])
+            # This resize is required to provide a correct input 
+            # to a pretrained ViT
+            transforms.Resize((224,224)),
 
-            test_transform = transforms.Compose([
+            # Normalize train dataset with its mean and standard deviation
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+        ])
 
-                # Convert to tensor
-                transforms.ToTensor(),
-                
-                # This resize is required to provide a correct input 
-                # to a pretrained ViT
-                transforms.Resize((224,224)),
+        test_transform = transforms.Compose([
 
-                # Normalize test dataset with its mean and standard deviation
-                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
-            ])
+            # Convert to tensor
+            transforms.ToTensor(),
+
+            # This resize is required to provide a correct input 
+            # to a pretrained ViT
+            transforms.Resize((224,224)),
+
+            # Normalize test dataset with its mean and standard deviation
+            transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+        ])
+        
 
     # Not a ViT model
     else:
-        
-        if pca:
 
-            train_transform = transforms.Compose([
+        train_transform = transforms.Compose([
 
-                # Convert to tensor
-                transforms.ToTensor(),
+            # Convert to tensor
+            transforms.ToTensor(),
+
+            # Allow random horizontal flips (data augmentation)
+            transforms.RandomHorizontalFlip(p = 0.25),
+
+            # Allow random vertical flips (data augmentation)
+            transforms.RandomVerticalFlip(p = 0.05),
+
+            # Normalize train dataset with its mean and standard deviation
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+        ])
+
+        test_transform = transforms.Compose([
             
-                # Allow random horizontal flips (data augmentation)
-                transforms.RandomHorizontalFlip(p = 0.25),
-
-                # Allow random vertical flips (data augmentation)
-                transforms.RandomVerticalFlip(p = 0.05),
-
-                # Normalize train dataset with its mean and standard deviation
-                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
-            ])
-
-
-        
-        else:
-
-            train_transform = transforms.Compose([
-
-                # Convert to tensor
-                transforms.ToTensor(),
-        
-                # Allow random horizontal flips (data augmentation)
-                transforms.RandomHorizontalFlip(p = 0.25),
-
-                # Allow random vertical flips (data augmentation)
-                transforms.RandomVerticalFlip(p = 0.05),
-
-                # Normalize train dataset with its mean and standard deviation
-                transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
-            ])
-
-            test_transform = transforms.Compose([
-                
-                # Convert to tensor
-                transforms.ToTensor(),
-                
-                # Normalize test dataset with its mean and standard deviation
-                transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
-            ])
+            # Convert to tensor
+            transforms.ToTensor(),
+            
+            # Normalize test dataset with its mean and standard deviation
+            transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+        ])
 
 
     return train_transform, test_transform

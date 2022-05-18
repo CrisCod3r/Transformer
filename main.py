@@ -129,8 +129,8 @@ def set_up_training(args):
         pca = load_pca_matrix(pca_components)    
 
     # Get training dataset (122400 images) with rotations
-    print("Loading training dataset...")
-    training_data = BreastCancerDataset(args.path + 'train/', transfs = train_transform, angles = [0, 90, -90], pca = pca)
+    print("Loading training dataset...")                                                                                          
+    training_data = BreastCancerDataset(args.path + 'train/', transfs = train_transform, angles = list(range(-90,91,15)), pca = pca)
     print("Loaded %d images" % len(training_data))
 
     # Get validation dataset (13600 images)

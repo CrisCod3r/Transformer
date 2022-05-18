@@ -73,9 +73,8 @@ def train(args) -> None:
     pca_comp = args.pca_comp
 
     # Get data paths
-    train_paths = glob(args.path + 'train/*') [:10]
-    val_paths = glob(args.path + 'validation/*') [:10]
-
+    train_paths = glob(args.path + 'train/*')
+    val_paths = glob(args.path + 'validation/*') 
     # Load PCA matrix
     if pca_comp is not None:
         print("Loading PCA matrix")
@@ -208,7 +207,7 @@ def train(args) -> None:
 
     # Get predicted probabilities
     probabilities = svm.predict_proba(val_data)
-    probabilities = [probabilities[idx][0] if predicted_labels[idx] == 0 else probabilities[idx][1] for idx in range(len(predicted_labels)) ]
+    probabilities = [elem [1] for elem in probabilities]
 
     # Delete validation data from memory
     del val_data
@@ -228,7 +227,7 @@ def train(args) -> None:
 
     # Save model
     print("Saving SVM model...")
-    pickle.dump(svm, open(file_name + '.p', 'wb' ))
+    pickle.dump(svm, open('pretrained/' + file_name + '.p', 'wb' ))
     print("Done.")
 
 def test(args) -> None:
@@ -314,7 +313,7 @@ def test(args) -> None:
 
     # Get predicted probabilities
     probabilities = svm.predict_proba(test_data)
-    probabilities = [probabilities[idx][0] if predicted_labels[idx] == 0 else probabilities[idx][1] for idx in range(len(predicted_labels)) ]
+    probabilities = [elem [1] for elem in probabilities]
 
     # Compute and plot metrics
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)
@@ -334,7 +333,7 @@ def main():
 
     # Parse arguments
     args = parser.parse_args()
-    print(args.file_name)
+
     if not args.test:
         # Train support vector machine
         train(args)

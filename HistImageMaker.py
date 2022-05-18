@@ -12,7 +12,18 @@ import os
 from tqdm import tqdm
 
 class HistopathologyImageMaker:
-    def __init__(self, model: torch.nn.Module):
+    def __init__(self, model: torch.nn.Module) -> None:
+        """
+        Constructor for the HistopathologyImageMaker
+
+        Args:
+            model (torch.nn.Module): Model that will be used to predict the patches in the reconstruction.
+
+        Raises:
+            TypeError: The given model is not a torch.nn.Module
+        """  
+
+        if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module')
 
         self.model = model
 
@@ -25,7 +36,25 @@ class HistopathologyImageMaker:
 
         return
     
-    def build_histopathological_image(self, dir: str, dst: str):
+    def build_histopathological_image(self, dir: str, dst: str) -> None:
+        """
+        Builds an histopathological image given its patches
+
+        Args:
+            dir (str): Path to the image patches
+            dst (str): Name of destination image
+
+        Raises:
+            TypeError: The given path is not a string
+            TypeError: The given destination is not a string
+            OSError: THe given path is not a directory
+
+        Returns:
+            None
+        """        
+        if not os.path.isdir(dir): raise OSError ('"dir" is not a directory')
+        if not isinstance(dir, str): raise TypeError('"dir" must be a string')
+        if not isinstance(dst, str): raise TypeError('"dst" must be a string')
 
         # Get image paths
         img_dir = os.listdir(dir)
@@ -57,7 +86,26 @@ class HistopathologyImageMaker:
         hist_image.save(dst + ".png")
         return 
 
-    def build_truelabel_histopathological_image(self, dir: str, dst: str):
+    def build_truelabel_histopathological_image(self, dir: str, dst: str) -> None:
+        """
+        Builds an histopathological image given its patches and its labels
+
+        Args:
+            dir (str): Path to the image patches
+            dst (str): Name of destination image
+
+        Raises:
+            TypeError: The given path is not a string
+            TypeError: The given destination is not a string
+            OSError: THe given path is not a directory
+        
+        Returns:
+            None
+        """        
+
+        if not os.path.isdir(dir): raise OSError ('"dir" is not a directory')
+        if not isinstance(dir, str): raise TypeError('"dir" must be a string')
+        if not isinstance(dst, str): raise TypeError('"dst" must be a string')
 
         # Get image paths
         img_dir = os.listdir(dir)
@@ -94,8 +142,26 @@ class HistopathologyImageMaker:
         hist_image.save(dst + ".png")
         return 
 
-    def build_predicted_histopathological_image(self, dir: str, dst: str):
-        
+    def build_predicted_histopathological_image(self, dir: str, dst: str) -> None:
+        """
+        Builds an histopathological image given its patches using the model to predict the label
+
+        Args:
+            dir (str): Path to the image patches
+            dst (str): Name of destination image
+
+        Raises:
+            TypeError: The given path is not a string
+            TypeError: The given destination is not a string
+            OSError: THe given path is not a directory
+
+        Returns:
+            None
+        """        
+        if not os.path.isdir(dir): raise OSError ('"dir" is not a directory')
+        if not isinstance(dir, str): raise TypeError('"dir" must be a string')
+        if not isinstance(dst, str): raise TypeError('"dst" must be a string')
+
         # Get image paths
         img_dir = os.listdir(dir)
 

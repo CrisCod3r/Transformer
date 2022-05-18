@@ -302,12 +302,18 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
 
                 # Get predicted probability and class
                 probs = F.softmax(outputs, dim = 1)
-                predicted_probs, predicted_class = probs.topk(1, dim = 1)
+                _, predicted_class = probs.topk(1, dim = 1)
+                # Since this is a binary classification problem, the metrics used to calculate
+                # the ROC-AUC score need a probability, which is the one associated with the prediction.
+                # However, it's not always the maximum the probability of both classes, rather always the probability
+                # of the same class (even if it's less than the other one), that's why I chose to always take the probability
+                # of the malignant class
+                probs = [elem[1] for elem in probs.tolist()]
 
                 # Accumulate true, predicted labels and probabilities
                 true_labels.extend( labels.data.tolist() )
                 predicted_labels.extend( predicted_class.tolist() )
-                probabilities.extend( predicted_probs.tolist() )
+                probabilities.extend( probs )
 
                 # Add total and correct predictions
                 total += labels.size(0)
@@ -328,12 +334,19 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
 
                 # Get predicted probability and class
                 probs = F.softmax(outputs, dim = 1)
-                predicted_probs, predicted_class = probs.topk(1, dim = 1)
+                _, predicted_class = probs.topk(1, dim = 1)
+                # Since this is a binary classification problem, the metrics used to calculate
+                # the ROC-AUC score need a probability, which is the one associated with the prediction.
+                # However, it's not always the maximum the probability of both classes, rather always the probability
+                # of the same class (even if it's less than the other one), that's why I chose to always take the probability
+                # of the malignant class
+                probs = [elem[1] for elem in probs.tolist()]
+
 
                 # Accumulate true, predicted labels and probabilities
                 true_labels.extend( labels.data.tolist() )
                 predicted_labels.extend( predicted_class.tolist() )
-                probabilities.extend( predicted_probs.tolist() )
+                probabilities.extend( probs )
 
                 # Add total and correct predictions
                 total += labels.size(0)
