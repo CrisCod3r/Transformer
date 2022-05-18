@@ -78,10 +78,9 @@ def set_up_training(args):
     """
     Sets up all of the necessary variable for training
     Args:
-        device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global best_accuracy, best_class_accuracy, file_name, n_components, model_name, model, optimizer, pca,  trainloader, testloader, scheduler, test_samples
+    global best_accuracy, best_class_accuracy, file_name, n_components, model_name, model, optimizer, pca, trainloader, testloader, scheduler, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
@@ -251,10 +250,10 @@ def test_model():
     print("Obtaining predictions...")
 
     # Obtain predictions
-    true_labels, predicted_labels = predict(device, model, testloader)
+    true_labels, predicted_labels, probabilities = predict(device, model, testloader)
 
     # Compute and plot metrics
-    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)
     print("Precision:", precision)
     print("Recall:", recall)
     print("Specificity:", specificity)

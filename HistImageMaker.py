@@ -1,8 +1,15 @@
+# PyTorch
 import torch
+import torchvision.transforms as transforms
+
+# Image managing
 from PIL import Image
+
+# Paths
 import os
 
-import torchvision.transforms as transforms
+# Utils
+from tqdm import tqdm
 
 class HistopathologyImageMaker:
     def __init__(self, model: torch.nn.Module):
@@ -25,7 +32,7 @@ class HistopathologyImageMaker:
 
         x_list, y_list = [], []
         max_x, max_y = 0, 0
-        for img in img_dir:
+        for img in tqdm(img_dir, desc = "Gathering data..."):
             
             x, y = img[1:-10].split('y')
             x,y = int(x [:-1]), int(y [:-1])
@@ -41,7 +48,7 @@ class HistopathologyImageMaker:
 
         hist_image = Image.new(mode = 'RGB', size =  (max_x, max_y), color = (255,255,255))
 
-        for idx in range(len(img_dir)):
+        for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
         
 
             img = Image.open(dir + img_dir[idx])
@@ -57,7 +64,7 @@ class HistopathologyImageMaker:
 
         x_list, y_list = [], []
         max_x, max_y = 0, 0
-        for img in img_dir:
+        for img in tqdm(img_dir, desc = "Gathering data..."):
             
             x, y = img[1:-10].split('y')
             x,y = int(x [:-1]), int(y [:-1])
@@ -75,7 +82,7 @@ class HistopathologyImageMaker:
         benign_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (255,0,0))
         malignant_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (0,255,0))
 
-        for idx in range(len(img_dir)):
+        for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
         
 
             if img_dir[idx] [-5] == "0":
@@ -94,7 +101,7 @@ class HistopathologyImageMaker:
 
         x_list, y_list = [], []
         max_x, max_y = 0, 0
-        for img in img_dir:
+        for img in tqdm(img_dir, desc = "Gathering data..."):
             
             x, y = img[1:-10].split('y')
             x,y = int(x [:-1]), int(y [:-1])
@@ -112,7 +119,7 @@ class HistopathologyImageMaker:
         benign_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (255,0,0))
         malignant_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (0,255,0))
 
-        for idx in range(len(img_dir)):
+        for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
             
             # Open image
             img = Image.open(dir + img_dir[idx])

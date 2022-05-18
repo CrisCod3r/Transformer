@@ -177,17 +177,21 @@ def build_model(model_name: str) -> nn.Module:
             image_size = 50,
             patch_size = 10,
             num_classes = 2,
-            dim = 1024,
-            depth = 6,
-            heads = 8,
-            mlp_dim = 2048,
-            dropout = 0.1,
-            emb_dropout = 0.1)
+            dim = 512,
+            depth = 3,
+            heads = 4,
+            mlp_dim = 512,
+            dropout = 0.0,
+            emb_dropout = 0.0
+        )
 
-        teacher = LeNet5()
+        model = models.efficientnet_b3()
+        state_dict = torch.load('./pretrained/efficientnetb3.pth')
+        model.load_state_dict( state_dict['model'] )
+
         deit = DistillWrapper(
             student = v,
-            teacher = teacher,
+            teacher = model,
             temperature = 3,
             alpha = 0.5,
             hard = True
@@ -714,7 +718,7 @@ def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: 
     plt.title('Receiver Operating Characteristic')
 
     # Plot ROC-AUC
-    plt.plot(fpr,tpr,label = 'AUC = %0.3f' % auc_value, ls = "--")
+    plt.plot(fpr,tpr,label = file_name + ' AUC = %0.3f' % auc_value, ls = "--")
 
     # Legend
     plt.legend(loc = 'lower right')

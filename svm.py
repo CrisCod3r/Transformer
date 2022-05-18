@@ -5,14 +5,15 @@ from sklearn.svm import SVC
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-# PIL   
+# Image managing
 from PIL import Image
+import cv2
 
 # Argument parser
 import argparse as arg
 
 # Utils
-from utils import compute_and_plot_stats
+from utils import compute_and_plot_stats, interval95, load_pca_matrix
 from tqdm import tqdm
 import numpy as np
 from glob import glob
@@ -45,10 +46,13 @@ parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=F
 # Enable verbose output
 parser.add_argument('-v', '--verbose', action= 'store_true',dest = 'verbose',default=False, help= 'Enable verbose output.')
 
+# PCA Components
+parser.add_argument('-p', '--pca', dest = 'pca_comp', default = None, type=int, help = 'Number of components to use in PCA Projection. If the parameter is ommited, no projection will be done.')
+
 # ---------- Global variables -----------
 
 # C - Value, Kernel type, Degree, Gamma and Verbose
-c_value, kernel, degree, gamma, file_name, verbose = None, None, None, None, None, None
+c_value, kernel, degree, gamma, file_name, verbose, pca_comp = None, None, None, None, None, None, None
 
 def train(args) -> None:
     """
@@ -58,7 +62,7 @@ def train(args) -> None:
         args: The arguments
     """    
 
-    global c_value, kernel, degree, gamma, file_name, verbose
+    global c_value, kernel, degree, gamma, file_name, verbose, pca_comp
 
     c_value = args.c_value
     kernel = args.kernel
@@ -66,35 +70,77 @@ def train(args) -> None:
     gamma = args.gamma
     file_name = args.file_name
     verbose = args.verbose
+    pca_comp = args.pca_comp
 
     # Get data paths
-    train_paths = glob(args.path + 'train/*') 
-    val_paths = glob(args.path + 'validation/*')
+    train_paths = glob(args.path + 'train/*') [:10]
+    val_paths = glob(args.path + 'validation/*') [:10]
+
+    # Load PCA matrix
+    if pca_comp is not None:
+        print("Loading PCA matrix")
+        pca = load_pca_matrix(pca_comp)
 
     # Matrix with data samples
     train_data = np.zeros((len(train_paths),7500))
     labels = np.zeros(len(train_paths))
 
-    for i in tqdm(range(len(train_paths)), desc = 'Loading training data...'):
+    if pca_comp is None:
+        for i in tqdm(range(len(train_paths)), desc = 'Loading training data...'):
 
-        # Get path
-        path = train_paths[i]
+            # Get path
+            path = train_paths[i]
 
-        # Get label
-        labels[i] = int(path[-5])
+            # Get label
+            labels[i] = int(path[-5])
 
-        # Open image and convert
-        img = Image.open(path)
-        img = np.array(img)
-        img = img.flatten()
+            # Open image and convert
+            img = Image.open(path)
+            img = np.array(img)
+            img = img.flatten()
 
-        # Append to training data
-        train_data[i] = img
+            # Append to training data
+            train_data[i] = img
+        
+    else:
+        for i in tqdm(range(len(train_paths)), desc = 'Loading training data with PCA...'):
+
+            # Get path
+            path = train_paths[i]
+
+            # Get label
+            labels[i] = int(path[-5])
+
+            # Load image using OpenCV (not PIL, this is done this way to use PCA correctly)
+            img = cv2.cvtColor( cv2.imread(path), cv2.COLOR_BGR2RGB )
+
+            # Split image into RGB channels
+            blue, green, red = cv2.split(img)
+
+            # Normalize
+            blue, green, red = blue/255, green/255, red/255
+
+            # Project data to lower dimensions
+            red = pca['red'].transform([ red.flatten() ])
+            green = pca['green'].transform([ green.flatten() ])
+            blue = pca['blue'].transform([ blue.flatten() ])
+
+            # Reconstruct data
+            red = pca['red'].inverse_transform(red)
+            green = pca['green'].inverse_transform(green)
+            blue = pca['blue'].inverse_transform(blue)
+
+            # Concatenate channels
+            img = np.concatenate((blue,green,red), axis = None)
+
+            # Append to training data
+            train_data[i] = img
 
     # Make SVM model in a pipeline
-    clf = make_pipeline(StandardScaler(), SVC(C = c_value, kernel = kernel, degree = degree, gamma = gamma, verbose = verbose))
+    svm = make_pipeline(StandardScaler(), SVC(C = c_value, kernel = kernel, degree = degree, gamma = gamma, verbose = verbose, probability = True))
+
     print("Training SVM...")
-    clf.fit(train_data, labels)
+    svm.fit(train_data, labels)
     print("Done.")
 
     # Delete training data from memory
@@ -104,31 +150,71 @@ def train(args) -> None:
     # Matrix with validation samples
     true_labels = np.zeros(len(val_paths))
     val_data = np.zeros((len(val_paths),7500))
+    probabilities = []
 
-    for i in tqdm(range(len(val_paths)), desc = 'Loading validation data...'):
+    if pca_comp is None:
+        for i in tqdm(range(len(val_paths)), desc = 'Loading validation data...'):
 
-        # Get path
-        path = val_paths[i]
+            # Get path
+            path = val_paths[i]
 
-        # Get label
-        true_labels[i] = int(path[-5])
+            # Get label
+            true_labels[i] = int(path[-5])
 
-        # Open image and convert
-        img = Image.open(path)
-        img = np.array(img)
-        img = img.flatten()
+            # Open image and convert
+            img = Image.open(path)
+            img = np.array(img)
+            img = img.flatten()
 
-        # Append to training data
-        val_data[i] = img
+            # Append to training data
+            val_data[i] = img
+        
+    else:
+        for i in tqdm(range(len(val_paths)), desc = 'Loading validation data with PCA...'):
+
+            # Get path
+            path = val_paths[i]
+
+            # Get label
+            true_labels[i] = int(path[-5])
+
+            # Load image using OpenCV (not PIL, this is done this way to use PCA correctly)
+            img = cv2.cvtColor( cv2.imread(path), cv2.COLOR_BGR2RGB )
+
+            # Split image into RGB channels
+            blue, green, red = cv2.split(img)
+
+            # Normalize
+            blue, green, red = blue/255, green/255, red/255
+
+            # Project data to lower dimensions
+            red = pca['red'].transform([ red.flatten() ])
+            green = pca['green'].transform([ green.flatten() ])
+            blue = pca['blue'].transform([ blue.flatten() ])
+
+            # Reconstruct data
+            red = pca['red'].inverse_transform(red)
+            green = pca['green'].inverse_transform(green)
+            blue = pca['blue'].inverse_transform(blue)
+
+            # Concatenate channels
+            img = np.concatenate((blue,green,red), axis = None)
+
+            # Append to training data
+            val_data[i] = img
 
     # Get predicted labels
-    predicted_labels = clf.predict(val_data)
+    predicted_labels = svm.predict(val_data)
+
+    # Get predicted probabilities
+    probabilities = svm.predict_proba(val_data)
+    probabilities = [probabilities[idx][0] if predicted_labels[idx] == 0 else probabilities[idx][1] for idx in range(len(predicted_labels)) ]
 
     # Delete validation data from memory
     del val_data
 
     # Compute and plot metrics
-    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)
     print("Precision:", precision)
     print("Recall:", recall)
     print("Specificity:", specificity)
@@ -142,7 +228,7 @@ def train(args) -> None:
 
     # Save model
     print("Saving SVM model...")
-    pickle.dump(clf, open(file_name + '.p', 'wb' ))
+    pickle.dump(svm, open(file_name + '.p', 'wb' ))
     print("Done.")
 
 def test(args) -> None:
@@ -153,41 +239,85 @@ def test(args) -> None:
         args: The arguments.
     """    
 
-    global file_name
+    global file_name, pca_comp
 
     file_name = args.file_name
+    pca_comp = args.pca_comp
 
     # Paths to test data
-    test_paths = glob(args.data + '*')
+    test_paths = glob(args.path + '*')
+
+    if pca_comp is not None:
+        print("Loading PCA matrix...")
+        pca = load_pca_matrix(pca_comp)
 
     # Load SVM
-    svm = pickle.load(open(file_name,'rb'))
+    svm = pickle.load(open(file_name + '.p','rb'))
 
     # Matrix with validation samples
     true_labels = np.zeros(len(test_paths))
     test_data = np.zeros((len(test_paths),7500))
 
-    for i in tqdm(range(len(test_paths)), desc = 'Loading validation data...'):
+    if pca_comp is None:
+        for i in tqdm(range(len(test_paths)), desc = 'Loading training data...'):
 
-        # Get path
-        path = test_paths[i]
+            # Get path
+            path = test_paths[i]
 
-        # Get label
-        true_labels[i] = int(path[-5])
+            # Get label
+            true_labels[i] = int(path[-5])
 
-        # Open image and convert
-        img = Image.open(path)
-        img = np.array(img)
-        img = img.flatten()
+            # Open image and convert
+            img = Image.open(path)
+            img = np.array(img)
+            img = img.flatten()
 
-        # Append to training data
-        test_data[i] = img
+            # Append to training data
+            test_data[i] = img
+        
+    else:
+        for i in tqdm(range(len(test_paths)), desc = 'Loading training data with PCA...'):
+
+            # Get path
+            path = test_paths[i]
+
+            # Get label
+            true_labels[i] = int(path[-5])
+
+            # Load image using OpenCV (not PIL, this is done this way to use PCA correctly)
+            img = cv2.cvtColor( cv2.imread(path), cv2.COLOR_BGR2RGB )
+
+            # Split image into RGB channels
+            blue, green, red = cv2.split(img)
+
+            # Normalize
+            blue, green, red = blue/255, green/255, red/255
+
+            # Project data to lower dimensions
+            red = pca['red'].transform([ red.flatten() ])
+            green = pca['green'].transform([ green.flatten() ])
+            blue = pca['blue'].transform([ blue.flatten() ])
+
+            # Reconstruct data
+            red = pca['red'].inverse_transform(red)
+            green = pca['green'].inverse_transform(green)
+            blue = pca['blue'].inverse_transform(blue)
+
+            # Concatenate channels
+            img = np.concatenate((blue,green,red), axis = None)
+
+            # Append to training data
+            test_data[i] = img
 
     # Get predicted labels
-    predicted_labels = clf.predict(test_data)
+    predicted_labels = svm.predict(test_data)
+
+    # Get predicted probabilities
+    probabilities = svm.predict_proba(test_data)
+    probabilities = [probabilities[idx][0] if predicted_labels[idx] == 0 else probabilities[idx][1] for idx in range(len(predicted_labels)) ]
 
     # Compute and plot metrics
-    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, file_name)
+    precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)
     print("Precision:", precision)
     print("Recall:", recall)
     print("Specificity:", specificity)
@@ -195,7 +325,7 @@ def test(args) -> None:
     print("Balanced Accuracy:", bac)
 
     # Confidence interval
-    interval = interval95( bac / 100, len(val_paths))
+    interval = interval95( bac / 100, len(test_paths))
     print("Confidence interval (95%):")
     print(str(bac) + ' +- ' + str(interval * 100))
 
@@ -204,7 +334,7 @@ def main():
 
     # Parse arguments
     args = parser.parse_args()
-
+    print(args.file_name)
     if not args.test:
         # Train support vector machine
         train(args)
