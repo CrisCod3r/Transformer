@@ -10,9 +10,13 @@ class IDCNet(nn.Module):
         # --------=| Block #1 |=-------------
         self.block1 = nn.Sequential(
 
-            DepthSepConv(nin = 3, nout = 32, kernel_size = 3),
-            nn.PReLU(num_parameters = 32),
-            nn.BatchNorm2d(32),
+            DepthSepConv(nin = 3, nout = 64, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(64),
+
+            DepthSepConv(nin = 64, nout = 64, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(64),
 
             nn.MaxPool2d(kernel_size = 2)
         )
@@ -20,13 +24,13 @@ class IDCNet(nn.Module):
         # --------=| Block #2 |=-------------
         self.block2 = nn.Sequential(
 
-            DepthSepConv(nin = 32, nout = 64, kernel_size = 3),
-            nn.PReLU(num_parameters = 64),
-            nn.BatchNorm2d(64),
+            DepthSepConv(nin = 64, nout = 128, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(128),
 
-            DepthSepConv(nin = 64, nout = 64, kernel_size = 3),
-            nn.PReLU(num_parameters = 64),
-            nn.BatchNorm2d(64),
+            DepthSepConv(nin = 128, nout = 128, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(128),
 
             nn.MaxPool2d(kernel_size = 2)
         )
@@ -34,30 +38,55 @@ class IDCNet(nn.Module):
         # --------=| Block #3|=-------------
         self.block3 = nn.Sequential(
 
-            DepthSepConv(nin = 64, nout = 128, kernel_size = 3),
-            nn.PReLU(num_parameters = 128),
-            nn.BatchNorm2d(128),
+            DepthSepConv(nin = 128, nout = 256, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(256),
 
-            DepthSepConv(nin = 128, nout = 128, kernel_size = 3),
-            nn.PReLU(num_parameters = 128),
-            nn.BatchNorm2d(128),
+            DepthSepConv(nin = 256, nout = 256, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(256),
 
-            DepthSepConv(nin = 128, nout = 128, kernel_size = 3),
-            nn.PReLU(num_parameters = 128),
-            nn.BatchNorm2d(128),
+            DepthSepConv(nin = 256, nout = 256, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(256),
 
             nn.MaxPool2d(kernel_size = 2)      
         )
 
-        self.linear = nn.Sequential(
-            nn.Linear(in_features= 128 * 6 * 6, out_features = 512),
-            nn.PReLU(num_parameters = 512),
+        # --------=| Block #4|=-------------
+        self.block4 = nn.Sequential(
 
-            # This raises a ValueError if batch size == 1
-            nn.BatchNorm1d(512),
+            DepthSepConv(nin = 256, nout = 512, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(512),
 
-            nn.Linear(in_features = 512, out_features = 2)
+            DepthSepConv(nin = 512, nout = 512, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(512),
+
+            DepthSepConv(nin = 512, nout = 512, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(512),
+
+            nn.MaxPool2d(kernel_size = 2)      
         )
+
+        # --------=| Block #5 |=-------------
+        self.block5 = nn.Sequential(
+
+            DepthSepConv(nin = 512, nout = 512, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(512),
+
+            DepthSepConv(nin = 512, nout = 512, kernel_size = 3),
+            nn.SELU(),
+            nn.BatchNorm2d(512),
+
+            nn.MaxPool2d(kernel_size = 2)
+        )
+
+        self.linear = nn.Linear(in_features= 512, out_features = 2)
+
 
     
     def forward(self, x):
@@ -67,6 +96,10 @@ class IDCNet(nn.Module):
         x = self.block2(x)
 
         x = self.block3(x)
+
+        x = self.block4(x)
+
+        x = self.block5(x)
 
         x = flatten(x, 1)
 

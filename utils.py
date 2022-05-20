@@ -1,8 +1,9 @@
-# PyTorch utils
+# PyTorch 
 import torch
 from torch import mean
 import torchvision.transforms as transforms
 from adabound import AdaBound
+
 
 # For plotting
 import seaborn as sn
@@ -37,15 +38,31 @@ from cv2 import merge
 TOTAL_BAR_LENGTH = 70
 last_time = time.time()
 begin_time = last_time
+term_width = 100
 
-# Uncomment both lines if you want to see the output in the terminal
-# _, term_width = os.popen('stty size', 'r').read().split()
-# term_width = int(term_width)
+def progress_bar(current: int, total: int, msg: str=None) -> None:
+    """
+    Displays a progress bar while training or testing
 
-# Comment this next line if you want to see the output in the terminal
-term_width = 50
+    Args:
+        current (int): Current batch index.
+        total (int): Total number of batches
+        msg (str, optional): Additional message to display. Defaults to None.
 
-def progress_bar(current, total, msg=None):
+    Raises:
+        TypeError: The current batch index given is not an integer.
+        TypeError: The total batches is not an integer.
+        TypeError: The message given is not a string.
+
+    Returns:
+        None.
+    """    
+
+    if not isinstance(current, int): raise TypeError('"current" must be an integer.')
+    if not isinstance(total, int): raise TypeError('"total" must be an integer.')
+    if not (msg is None or isinstance(msg, str)): raise TypeError('"msg" must be a str or None.')
+
+
     global last_time, begin_time
     if current == 0:
         begin_time = time.time()  # Reset for new bar.
@@ -90,9 +107,23 @@ def progress_bar(current, total, msg=None):
 
 
 def format_time(seconds):
+    """
+    Formats the time to be shown of the progress bar
+
+    Args:
+        seconds (float): Number of seconds.
+
+    Raises:
+        TypeError: The given time is not a float.
+
+    Returns:
+        str: Formated time to display.
+    """    
+
+    if not isinstance(seconds, float): raise TypeError('"seconds" must be a float.')
 
     # Just in case it takes a long time...
-    days = seconds // (3600/24)
+    days = seconds // (3600*24)
     seconds = seconds - days*3600*24
 
     hours = seconds // 3600
@@ -172,33 +203,8 @@ def build_model(model_name: str) -> nn.Module:
         return models.convnext_large(pretrained = True)
 
     if model_name == "deit":
-
-        v = DistillableViT(
-            image_size = 50,
-            patch_size = 10,
-            num_classes = 2,
-            dim = 512,
-            depth = 3,
-            heads = 4,
-            mlp_dim = 512,
-            dropout = 0.0,
-            emb_dropout = 0.0
-        )
-
-        model = models.efficientnet_b3()
-        state_dict = torch.load('./pretrained/efficientnetb3.pth')
-        model.load_state_dict( state_dict['model'] )
-
-        deit = DistillWrapper(
-            student = v,
-            teacher = model,
-            temperature = 3,
-            alpha = 0.5,
-            hard = True
-        )
-
-        return deit
-
+        model =  torch.hub.load('facebookresearch/deit:main','deit_base_patch16_224',pretrained = True)
+        return model
 
     if model_name == "densenet121":
         return models.densenet121(pretrained = True)
@@ -306,7 +312,7 @@ def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.
         return AdaBound(model.parameters(), lr= 1e-3, final_lr = 0.1)
 
 
-def build_transforms(model_name:str, pca:bool) -> list:
+def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, transforms.Compose]:
 
     """
     Function that builds the transforms to apply to the data based on the provided name.
@@ -320,8 +326,8 @@ def build_transforms(model_name:str, pca:bool) -> list:
         TypeError: The given boolean is not a boolean. (True or False)
 
     Returns:
-        list: The transforms to apply to the training data.
-        list: The transforms to apply to the test data.
+        torch.transforms.Compose: The transforms to apply to the training data.
+        torch.transforms.Compose: The transforms to apply to the test data.
     """    
 
     # Available models
@@ -333,7 +339,7 @@ def build_transforms(model_name:str, pca:bool) -> list:
     if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
     if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
-    if model_name == 'vit_b_16' or model_name == 'vit_l_16':
+    if model_name == 'vit_b_16' or model_name == 'vit_l_16' or model_name == "deit":
         
         train_transform = transforms.Compose([
 
@@ -347,7 +353,7 @@ def build_transforms(model_name:str, pca:bool) -> list:
             transforms.RandomVerticalFlip(p = 0.05),
             
             # This resize is required to provide a correct input 
-            # to a pretrained ViT
+            # to a pretrained ViT of patch size == 16
             transforms.Resize((224,224)),
 
             # Normalize train dataset with its mean and standard deviation
@@ -360,11 +366,11 @@ def build_transforms(model_name:str, pca:bool) -> list:
             transforms.ToTensor(),
 
             # This resize is required to provide a correct input 
-            # to a pretrained ViT
+            # to a pretrained ViT of patch size == 16
             transforms.Resize((224,224)),
 
-            # Normalize test dataset with its mean and standard deviation
-            transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+            # Normalize test dataset with the mean and standard deviation of the training data
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1497, 0.1970, 0.1428))
         ])
         
 
@@ -383,7 +389,7 @@ def build_transforms(model_name:str, pca:bool) -> list:
             transforms.RandomVerticalFlip(p = 0.05),
 
             # Normalize train dataset with its mean and standard deviation
-            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1497, 0.1970, 0.1428))
         ])
 
         test_transform = transforms.Compose([
@@ -392,7 +398,7 @@ def build_transforms(model_name:str, pca:bool) -> list:
             transforms.ToTensor(),
             
             # Normalize test dataset with its mean and standard deviation
-            transforms.Normalize((0.7594, 0.5650, 0.6884), (0.1504, 0.1976, 0.1431))
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1497, 0.1970, 0.1428))
         ])
 
 
@@ -490,41 +496,7 @@ def interval95(acc:float, n_data:int) -> float:
 
     return bound
 
-
-def plot(x_axis, y_axis, x_label,y_label, name = "Plot"):
-    """
-    Creates plot using pyplot
-    Args:
-        x_axis = List with values for the x axis
-        y_axis = List with values for the y axis (must contain tuples like: ([values], label))
-        x_label = Label for the x axis
-        y_label = Label for the y axis
-        name: Name of the file where the plot will be saved
-
-    """
-    new_x_axis = linspace(min(x_axis), max(x_axis), 200)
-
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    
-    for y in y_axis:
-        
-        # There must be at least 4 values in x_axis and in y[0] for this to work
-        spl = make_interp_spline(x_axis, y[0], k=3)
-        
-        y_smooth = spl(new_x_axis)
-
-        plt.plot(new_x_axis, y_smooth, label= y[1])
-
-    plt.legend()
-    plt.savefig(name)
-    plt.clf()
-
-    # If saved correctly, return True
-    return True
-
-
-def get_mean_and_std(dataloader: torch.utils.data.DataLoader) -> Tuple[float, float]:
+def get_mean_and_std(dataloader: torch.utils.data.DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
 
     """
     Computes the mean and standard deviation of the dataset.
@@ -537,8 +509,8 @@ def get_mean_and_std(dataloader: torch.utils.data.DataLoader) -> Tuple[float, fl
 
 
     Returns:
-        tuple: The mean of the dataset.
-        tuple: The standard deviation of the dataset.
+        torch.Tensor: The mean of the dataset.
+        torch.Tensor: The standard deviation of the dataset.
     """    
     if not isinstance(dataloader, torch.utils.data.DataLoader): raise TypeError('"dataloader" must be a torch.utils.data.DataLoader')
 

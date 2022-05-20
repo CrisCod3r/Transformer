@@ -30,8 +30,10 @@ class HistopathologyImageMaker:
         self.transforms =  transforms.Compose([
 
             # Convert to tensor
-            transforms.ToTensor()
+            transforms.ToTensor(),
 
+            # Normalize train dataset with its mean and standard deviation
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
         ])
 
         return
@@ -47,7 +49,7 @@ class HistopathologyImageMaker:
         Raises:
             TypeError: The given path is not a string
             TypeError: The given destination is not a string
-            OSError: THe given path is not a directory
+            OSError: The given path is not a directory
 
         Returns:
             None
@@ -97,7 +99,7 @@ class HistopathologyImageMaker:
         Raises:
             TypeError: The given path is not a string
             TypeError: The given destination is not a string
-            OSError: THe given path is not a directory
+            OSError: The given path is not a directory
         
         Returns:
             None
@@ -153,7 +155,7 @@ class HistopathologyImageMaker:
         Raises:
             TypeError: The given path is not a string
             TypeError: The given destination is not a string
-            OSError: THe given path is not a directory
+            OSError: The given path is not a directory
 
         Returns:
             None
@@ -185,29 +187,31 @@ class HistopathologyImageMaker:
         benign_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (255,0,0))
         malignant_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (0,255,0))
 
-        for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
-            
-            # Open image
-            img = Image.open(dir + img_dir[idx])
+        self.model.eval()
+        with torch.no_grad():
+            for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
+                
+                # Open image
+                img = Image.open(dir + img_dir[idx])
 
-            # Transform to tensor
-            tensor = self.transforms(img)
+                # Transform to tensor
+                tensor = self.transforms(img)
 
-            # Add an extra dimension to allow forwarding through the model
-            tensor = tensor[None]
+                # Add an extra dimension to allow forwarding through the model
+                tensor = tensor[None]
 
-            # Predict label
-            output = self.model(tensor)
-            _, predicted = output.max(1)
-            predicted = predicted.item()
+                # Predict label
+                output = self.model(tensor)
+                _, predicted = output.max(1)
+                predicted = predicted.item()
 
-            # Prediction == Benign
-            if predicted == 0:
-                hist_image.paste(benign_patch, (x_list[idx], y_list[idx]))
+                # Prediction == Benign
+                if predicted == 0:
+                    hist_image.paste(benign_patch, (x_list[idx], y_list[idx]))
 
-            # Prediction == Malignant
-            else:
-                hist_image.paste(malignant_patch, (x_list[idx], y_list[idx]))
+                # Prediction == Malignant
+                else:
+                    hist_image.paste(malignant_patch, (x_list[idx], y_list[idx]))
 
         # Save image
         hist_image.save(dst + ".png")

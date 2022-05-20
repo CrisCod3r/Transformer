@@ -198,7 +198,7 @@ def setup_test(args):
 
 def train_model(num_epochs: int) -> None:
     """
-    Trains the neural network
+    Trains the neural network for a number of epochs.
     Args:
         num_epochs (int): Number of epochs
 
@@ -250,7 +250,7 @@ def test_model():
     print("Obtaining predictions...")
 
     # Obtain predictions
-    true_labels, predicted_labels, probabilities = predict(device, model, testloader)
+    true_labels, predicted_labels, probabilities = predict(device, model, model_name, testloader)
 
     # Compute and plot metrics
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)

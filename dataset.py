@@ -16,16 +16,18 @@ from torch.utils.data.dataset import Dataset
 
 # Utilities
 from utils import apply_pca
-
+from typing import Tuple
+from torch import Tensor
 
 class BreastCancerDataset(Dataset):
-    def __init__(self, data_dir: str, transfs: transforms.transforms.Compose = transforms.Compose([ transforms.ToTensor() ]), angles: list = None, pca: dict = None):
+    def __init__(self, data_dir: str, transfs: transforms.transforms.Compose = transforms.Compose([ transforms.ToTensor(), transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1497, 0.1970, 0.1428)) ]), 
+                angles: list = None, pca: dict = None):
         """
         Dataset for breast histopathology images where the label is embedded in the file.
 
         Args:
             data_dir (str): Path to the images
-            transforms (transforms.transforms.Compose, optional): Transform to apply to the images for data augmentation. Defaults to transforms.ToTensor().
+            transfs (transforms.transforms.Compose, optional): Transform to apply to the images for data augmentation. Defaults to transforms.ToTensor().
             angles (list, optional): List of integers which each one indicates an angle to perform a discrete rotation. None means no rotations will be done. Defaults to None.
             pca (dict, optional): PCA matrix for all 3 color channels. None means no PCA will be applied.Defaults to None.
 
@@ -59,8 +61,17 @@ class BreastCancerDataset(Dataset):
         # PCA matrix (3 channels)
         self.pca = pca
 
-    def __getitem__(self,index):
-        
+    def __getitem__(self,index: int) -> Tuple[Tensor, int]:
+        """
+        Returns an image given a index
+
+        Args:
+            index (int): The index of the image
+
+        Returns:
+            Tensor: The image as a Tensor
+            int: The label of the image
+        """        
         # Get image name from list
         img_path = self.image_list[index]
 
@@ -101,5 +112,11 @@ class BreastCancerDataset(Dataset):
 
         return (tensor, label)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Returns the number of images in the dataset
+
+        Returns:
+            int: The length of the dataset
+        """        
         return self.data_len    

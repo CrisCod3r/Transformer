@@ -55,68 +55,34 @@ def train(criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch:
     train_loss = 0
     correct = 0
     total = 0
-    if not model_name == "deit":
-        for batch_idx, (inputs, labels) in enumerate(trainloader):
 
-            inputs, labels = inputs.to(device), labels.to(device)
+    for batch_idx, (inputs, labels) in enumerate(trainloader):
 
-            # Reset gradient
-            optimizer.zero_grad()
+        inputs, labels = inputs.to(device), labels.to(device)
 
-            # Forward pass
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
+        # Reset gradient
+        optimizer.zero_grad()
 
-            # Backward and optimize
-            loss.backward()
-            optimizer.step()
+        # Forward pass
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
 
-            # Accumulate loss
-            train_loss += loss.item()
+        # Backward and optimize
+        loss.backward()
+        optimizer.step()
 
-            # Get predicted output
-            _, predicted = outputs.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
-            
-            # Update progress bar
-            progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                        % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    
-    else:
-        for batch_idx, (inputs, labels) in enumerate(trainloader):
+        # Accumulate loss
+        train_loss += loss.item()
 
-            # Set model to train
-            model.train()
-
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            # Reset gradient
-            optimizer.zero_grad()
-
-            # Forward pass
-            loss = model(inputs, labels)
-
-            # Backward and optimize
-            loss.backward()
-            optimizer.step()
-
-            # Accumulate loss
-            train_loss += loss.item()
-
-            # Get predicted output
-            model.eval()
-            with torch.no_grad():
-                outputs = model.student(inputs)
-                _, predicted = outputs.max(1)
-
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
-            
-            # Update progress bar
-            progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                        % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        # Get predicted output
+        _, predicted = outputs.max(1)
+        total += labels.size(0)
+        correct += predicted.eq(labels).sum().item()
         
+        # Update progress bar
+        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                    % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+      
     # Decay Learning Rate
     scheduler.step()
     
@@ -174,70 +140,37 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
     n_class_correct = [0 for i in range(len(classes))]
     n_class_samples = [0 for i in range(len(classes))]
 
-    if not model_name == "deit":
-        # Disable gradients
-        with torch.no_grad():
+    # Disable gradients
+    with torch.no_grad():
 
-            for batch_idx, (inputs, labels) in enumerate(testloader):
+        for batch_idx, (inputs, labels) in enumerate(testloader):
 
-                inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels = inputs.to(device), labels.to(device)
 
-                # Get predicted output
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
+            # Get predicted output
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
 
-                # Accumulate test loss
-                test_loss += loss.item()
-                _, predicted = outputs.max(1)
-                total += labels.size(0)
-                correct += predicted.eq(labels).sum().item()
-                
-                # Accuracy per class
-                for i in range(len(labels)):
+            # Accumulate test loss
+            test_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+            
+            # Accuracy per class
+            for i in range(len(labels)):
 
-                    label = labels[i]
-                    pred = predicted[i]
+                label = labels[i]
+                pred = predicted[i]
 
-                    if (label == pred):
-                        n_class_correct[label] += 1
+                if (label == pred):
+                    n_class_correct[label] += 1
 
-                    n_class_samples[label] += 1
+                n_class_samples[label] += 1
 
-                progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-    else:
-        # Disable gradients
-        with torch.no_grad():
-
-            for batch_idx, (inputs, labels) in enumerate(testloader):
-
-                inputs, labels = inputs.to(device), labels.to(device)
-
-                # Get predicted output
-                loss = model(inputs, labels)
-
-
-                # Accumulate test loss
-                test_loss += loss.item()
-                outputs = model.student(inputs)
-                _, predicted = outputs.max(1)
-
-                total += labels.size(0)
-                correct += predicted.eq(labels).sum().item()
-                
-                # Accuracy per class
-                for i in range(len(labels)):
-
-                    label = labels[i]
-                    pred = predicted[i]
-
-                    if (label == pred):
-                        n_class_correct[label] += 1
-
-                    n_class_samples[label] += 1
-
-                progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                        % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+   
 
     # Save checkpoint.
     acc = 100.*correct/total
@@ -290,70 +223,38 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
 
 
     true_labels, predicted_labels, probabilities = [], [], []
-    if not model_name == "deit":
-        with torch.no_grad():
 
-            for batch_idx, (inputs, labels) in enumerate(testloader):
+    with torch.no_grad():
 
-                inputs, labels = inputs.to(device), labels.to(device)
+        for batch_idx, (inputs, labels) in enumerate(testloader):
 
-                # Get predicted output
-                outputs = model(inputs)
+            inputs, labels = inputs.to(device), labels.to(device)
 
-                # Get predicted probability and class
-                probs = F.softmax(outputs, dim = 1)
-                _, predicted_class = probs.topk(1, dim = 1)
-                # Since this is a binary classification problem, the metrics used to calculate
-                # the ROC-AUC score need a probability, which is the one associated with the prediction.
-                # However, it's not always the maximum the probability of both classes, rather always the probability
-                # of the same class (even if it's less than the other one), that's why I chose to always take the probability
-                # of the malignant class
-                probs = [elem[1] for elem in probs.tolist()]
+            # Get predicted output
+            outputs = model(inputs)
 
-                # Accumulate true, predicted labels and probabilities
-                true_labels.extend( labels.data.tolist() )
-                predicted_labels.extend( predicted_class.tolist() )
-                probabilities.extend( probs )
+            # Get predicted probability and class
+            probs = F.softmax(outputs, dim = 1)
+            _, predicted_class = probs.topk(1, dim = 1)
+            # Since this is a binary classification problem, the metrics used to calculate
+            # the ROC-AUC score need a probability, which is the one associated with the prediction.
+            # However, it's not always the maximum the probability of both classes, rather always the probability
+            # of the same class (even if it's less than the other one), that's why I chose to always take the probability
+            # of the malignant class
+            probs = [elem[1] for elem in probs.tolist()]
 
-                # Add total and correct predictions
-                total += labels.size(0)
-                correct += predicted_class.eq(labels).sum().item()
+            # Accumulate true, predicted labels and probabilities
+            true_labels.extend( labels.data.tolist() )
+            predicted_labels.extend( predicted_class.tolist() )
+            probabilities.extend( probs )
 
-                # Update progress bar
-                progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
-                    % (100.*correct/total, correct, total))
-    else:
-        with torch.no_grad():
+            # Add total and correct predictions
+            total += labels.size(0)
+            correct += predicted_class.eq(labels).sum().item()
 
-            for batch_idx, (inputs, labels) in enumerate(testloader):
+            # Update progress bar
+            progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
+                % (100.*correct/total, correct, total))
 
-                inputs, labels = inputs.to(device), labels.to(device)
-
-                # Get predicted output
-                outputs = model(inputs)
-
-                # Get predicted probability and class
-                probs = F.softmax(outputs, dim = 1)
-                _, predicted_class = probs.topk(1, dim = 1)
-                # Since this is a binary classification problem, the metrics used to calculate
-                # the ROC-AUC score need a probability, which is the one associated with the prediction.
-                # However, it's not always the maximum the probability of both classes, rather always the probability
-                # of the same class (even if it's less than the other one), that's why I chose to always take the probability
-                # of the malignant class
-                probs = [elem[1] for elem in probs.tolist()]
-
-
-                # Accumulate true, predicted labels and probabilities
-                true_labels.extend( labels.data.tolist() )
-                predicted_labels.extend( predicted_class.tolist() )
-                probabilities.extend( probs )
-
-                # Add total and correct predictions
-                total += labels.size(0)
-                correct += predicted_class.eq(labels).sum().item()
-
-                # Update progress bar
-                progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
-                    % (100.*correct/total, correct, total))
     
     return true_labels, predicted_labels, probabilities
