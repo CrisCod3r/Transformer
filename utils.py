@@ -9,7 +9,6 @@ from adabound import AdaBound
 import seaborn as sn
 from numpy import linspace as linspace
 import matplotlib.pyplot as plt
-from scipy.interpolate import make_interp_spline
 
 # Sklearn metrics
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
@@ -20,7 +19,7 @@ import torchvision.models as models
 from models.LeNet5 import *
 from models.AlexNet import *
 from models.IDCNet import *
-from vit_pytorch.distill import DistillableViT, DistillWrapper
+
 
 # Utils
 import numpy as np
@@ -180,8 +179,8 @@ def build_model(model_name: str) -> nn.Module:
     """    
 
     # Available models
-    net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "deit" , "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
-    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet", "lenet5",
+    net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet_tiny", "idcnet_small", "idcnet_base", "idcnet_large", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
@@ -201,10 +200,6 @@ def build_model(model_name: str) -> nn.Module:
     
     if model_name == "convnext_large":
         return models.convnext_large(pretrained = True)
-
-    if model_name == "deit":
-        model =  torch.hub.load('facebookresearch/deit:main','deit_base_patch16_224',pretrained = True)
-        return model
 
     if model_name == "densenet121":
         return models.densenet121(pretrained = True)
@@ -240,8 +235,17 @@ def build_model(model_name: str) -> nn.Module:
     if model_name == "googlenet":
         return models.googlenet(pretrained = True)
     
-    if model_name == "idcnet":
-        return IDCNet()
+    if model_name == "idcnet_tiny":
+        return IDCNet_tiny(stochastic_depth_prob = 0.8, use_downsample = False)
+    
+    if model_name == "idcnet_small":
+        return IDCNet_small(stochastic_depth_prob = 0.8, use_downsample = False)
+
+    if model_name == "idcnet_base":
+        return IDCNet_base(stochastic_depth_prob = 0.8, use_downsample = False)
+
+    if model_name == "idcnet_large":
+        return IDCNet_large(stochastic_depth_prob = 0.8, use_downsample = False)
 
     if model_name == "lenet5":
         return LeNet5()
@@ -331,15 +335,15 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
     """    
 
     # Available models
-    net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "deit" , "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
-    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet", "lenet5",
+    net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet_tiny", "idcnet_small", "idcnet_base", "idcnet_large", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
     if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
     if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
-    if model_name == 'vit_b_16' or model_name == 'vit_l_16' or model_name == "deit":
+    if model_name == 'vit_b_16' or model_name == 'vit_l_16':
         
         train_transform = transforms.Compose([
 

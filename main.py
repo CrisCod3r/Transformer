@@ -18,11 +18,14 @@ import os
 
 parser = arg.ArgumentParser(description= 'Train or test a CNN or ViT with the breast cancer dataset.')
 
-# Path to data
-parser.add_argument('-d', '--data', dest = 'path', default = 'data', type=str, help= 'Path to dataset')
+# Path to training data
+parser.add_argument('-tr', '--training_path', dest = 'training_path', default = None, type=str, help= 'Path to training dataset.')
+
+# Path to test data
+parser.add_argument('-te', '--test_path', dest = 'test_path', default = None, type=str, help= 'Path to test dataset (can also be path to validation data).')
 
 # Model
-parser.add_argument('-n', '--net', dest = 'net', default = 'lenet', type=str, help= 'Model to train')
+parser.add_argument('-n', '--net', dest = 'net', default = None, type=str, help= 'Model to train')
 
 # Number of epochs
 parser.add_argument('-e', '--epochs', dest= 'num_epochs', default= 1, type=int, help= "Number of epochs in training")
@@ -31,20 +34,19 @@ parser.add_argument('-e', '--epochs', dest= 'num_epochs', default= 1, type=int, 
 parser.add_argument('-b', '--batch_size',dest = 'batch_size', default= 8, type=int, help= 'Batch size')
 
 # Optimizer
-parser.add_argument('-o', '--optimizer', dest = 'optimizer',default="adam", type=str,help= 'Learning rate optimizer')
+parser.add_argument('-o', '--optimizer', dest = 'optimizer', default="adam", type=str, help= 'Learning rate optimizer')
 
 # Resume training from checkpoint
-parser.add_argument('-r', '--resume', action= 'store_true',dest = 'resume',default=False,help= 'Resume training from checkpoint')
+parser.add_argument('-r', '--resume', action= 'store_true', dest = 'resume', default=False, help= 'Resume training from checkpoint')
 
 # Test the neural network (requiers the -n parameter)
-parser.add_argument('-t', '--test', action= 'store_true',dest = 'test',default=False,help= 'Test the neural network (requiers the -n parameter)')
+parser.add_argument('-t', '--test', action= 'store_true', dest = 'test', default=False, help= 'Test a neural network (requiers the -n and -te parameter)')
 
 # Name used for the files generated as output (plots)
-parser.add_argument('-na', '--name', dest = 'file_name',default="output", type=str,help= 'Name used for the files generated as output (plots)')
+parser.add_argument('-na', '--name', dest = 'file_name', default="output", type=str, help= 'Name used for the files generated as output (plots)')
 
 # Number of components for PCA projection
-parser.add_argument('-p', '--pca', dest = 'pca_components',default=None, type=int,help= 'Number of components for PCA projection. If not used, no PCA projection will be applied')
-
+parser.add_argument('-p', '--pca', dest = 'pca_components', default=None, type=int, help= 'Number of components for PCA projection. If not used, no PCA projection will be applied')
 
 
 # --------------- Global variables ---------------
@@ -130,12 +132,12 @@ def set_up_training(args):
 
     # Get training dataset (122400 images) with rotations
     print("Loading training dataset...")                                                                                          
-    training_data = BreastCancerDataset(args.path + 'train/', transfs = train_transform, angles = list(range(-90,91,15)), pca = pca)
+    training_data = BreastCancerDataset(args.training_path + '/', transfs = train_transform, angles = list(range(-90,91,15)), pca = pca)
     print("Loaded %d images" % len(training_data))
 
-    # Get validation dataset (13600 images)
-    print("Loading validation dataset...")
-    test_data = BreastCancerDataset(args.path + 'validation/', transfs = test_transform, pca = pca)
+    # Get test dataset (13600 images)
+    print("Loading test dataset...")
+    test_data = BreastCancerDataset(args.test_path + '/', transfs = test_transform, pca = pca)
     print("Loaded %d images" % len(test_data))
 
     test_samples = len(test_data)
@@ -184,7 +186,7 @@ def setup_test(args):
 
     # Get test dataset (15110 images)
     print("Loading test dataset...")
-    test_data = BreastCancerDataset(args.path, transfs = test_transform, pca = pca)
+    test_data = BreastCancerDataset(args.test_path, transfs = test_transform, pca = pca)
     print("Loaded %d images" % len(test_data))
     test_samples = len(test_data)
 
@@ -218,7 +220,7 @@ def train_model(num_epochs: int) -> None:
             best_accuracy = test_acc 
             best_class_accuracy = class_accuracy   
 
-    # Plot confussion matrix when the model had the best accuracy
+    # Get model when it had the best accuracy
     del model
     model = build_model(model_name)
     model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth')['model'] )
@@ -235,7 +237,6 @@ def train_model(num_epochs: int) -> None:
     print("Specificity:", specificity)
     print("F - Score:", f_score)
     print("Balanced Accuracy:", bac)
-    print("Best accuracy: ", best_accuracy)
 
     # Confidence interval
     interval = interval95( best_accuracy / 100, test_samples)
@@ -259,7 +260,6 @@ def test_model():
     print("Specificity:", specificity)
     print("F - Score:", f_score)
     print("Balanced Accuracy:", bac)
-    print("Best accuracy: ", best_accuracy)
 
     # Confidence interval
     interval = interval95( best_accuracy / 100, test_samples)

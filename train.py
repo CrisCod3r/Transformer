@@ -215,6 +215,7 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
     if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module.')
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a string.')
     if not isinstance(testloader, torch.utils.data.DataLoader): raise TypeError('"testloader" must be a torch.utils.data.DataLoader')
+    
     #Set model to evaluation
     model.eval()
 
