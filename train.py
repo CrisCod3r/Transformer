@@ -10,12 +10,12 @@ import os
 from typing import Tuple
 
 # Training function
-def train(criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch: int, model: torch.nn.Module, model_name: str,  optimizer: torch.optim.Optimizer, scheduler: torch.optim.lr_scheduler.ExponentialLR, trainloader: torch.utils.data.DataLoader) -> None:
+def train(criterion: torch.nn.modules.loss.BCEWithLogitsLoss, device: str, epoch: int, model: torch.nn.Module, model_name: str,  optimizer: torch.optim.Optimizer, scheduler: torch.optim.lr_scheduler.ExponentialLR, trainloader: torch.utils.data.DataLoader) -> None:
     """
     Trains the model for 1 epoch
 
     Args:
-        criterion (torch.nn.modules.loss.CrossEntropyLoss): Loss function. Since in this code only uses the CrossEntropyLoss, no other loss function is allowed.
+        criterion (torch.nn.modules.loss.BCEWithLogitsLoss): Loss function. Since in this code only uses the BCEWithLogitsLoss, no other loss function is allowed.
         You may modify the code if you need.
         device (str): Device to use (CPU or GPU).
         epoch (int): Current epoch number.
@@ -38,7 +38,7 @@ def train(criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch:
         None
     """    
 
-    if not isinstance(criterion, torch.nn.modules.loss.CrossEntropyLoss): raise TypeError('"criterion" must be a loss function.')
+    if not isinstance(criterion, torch.nn.modules.loss.BCEWithLogitsLoss): raise TypeError('"criterion" must be a loss function.')
     if not isinstance(device, str): raise TypeError('"device" must be a str (CPU or GPU).')
     if not isinstance(epoch, int): raise TypeError('"epoch" must be an integer.')
     if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module.')
@@ -59,12 +59,15 @@ def train(criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch:
     for batch_idx, (inputs, labels) in enumerate(trainloader):
 
         inputs, labels = inputs.to(device), labels.to(device)
+        labels = labels.float()
 
         # Reset gradient
         optimizer.zero_grad()
-
+        
         # Forward pass
-        outputs = model(inputs)
+        outputs = model(inputs)[:,:1].squeeze(1)
+
+        # Loss function
         loss = criterion(outputs, labels)
 
         # Backward and optimize
@@ -75,9 +78,9 @@ def train(criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch:
         train_loss += loss.item()
 
         # Get predicted output
-        _, predicted = outputs.max(1)
+        probs = torch.sigmoid(outputs) > 0.5
+        correct += probs.eq(labels).sum().item()
         total += labels.size(0)
-        correct += predicted.eq(labels).sum().item()
         
         # Update progress bar
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -89,14 +92,13 @@ def train(criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch:
     return
 
 
-def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossEntropyLoss, device: str, epoch: int, file_name: str, model: torch.nn.Module, model_name: str, testloader: torch.utils.data.DataLoader) -> Tuple[float, list]:
+def test(best_acc: float, criterion: torch.nn.modules.loss.BCEWithLogitsLoss, device: str, epoch: int, file_name: str, model: torch.nn.Module, model_name: str, testloader: torch.utils.data.DataLoader) -> Tuple[float, list]:
     """
     Test the model
 
     Args:
         best_acc (float): Best accuracy obtained previously.
-        classes (list): List of strings indicating the name of the classes.
-        criterion (torch.nn.modules.loss.CrossEntropyLoss): Loss function. Since in this code only uses the CrossEntropyLoss, no other loss function is allowed.
+        criterion (torch.nn.modules.loss.BCEWithLogitsLoss): Loss function. Since in this code only uses the BCEWithLogitsLoss, no other loss function is allowed.
         You may modify the code if you need.
         device (str): Device to use (CPU or GPU).
         epoch (int): Current epoch number.
@@ -107,7 +109,6 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
 
     Raises:
         TypeError: The given best accuracy is not a float number
-        TypeError: The given list of classes is not a list
         TypeError: The given loss function is not a function
         TypeError: The given device is not a string
         TypeError: The given epoch number is not a integer
@@ -121,8 +122,7 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
         list: The accuracy of the model per class
     """    
     if not isinstance(best_acc, float): raise TypeError('"best_acc" must be a float.')
-    if not isinstance(classes, list): raise TypeError('"classes" must be a list of strings.')
-    if not isinstance(criterion, torch.nn.modules.loss.CrossEntropyLoss): raise TypeError('"criterion" must be a loss function.')
+    if not isinstance(criterion, torch.nn.modules.loss.BCEWithLogitsLoss): raise TypeError('"criterion" must be a loss function.')
     if not isinstance(device, str): raise TypeError('"device" must be a str (CPU or GPU).')
     if not isinstance(epoch, int): raise TypeError('"epoch" must be an integer.')
     if not isinstance(file_name, str): raise TypeError('"file_name" must be a string.')
@@ -137,36 +137,28 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
     correct = 0
     total = 0
 
-    n_class_correct = [0 for i in range(len(classes))]
-    n_class_samples = [0 for i in range(len(classes))]
-
     # Disable gradients
     with torch.no_grad():
 
         for batch_idx, (inputs, labels) in enumerate(testloader):
 
             inputs, labels = inputs.to(device), labels.to(device)
+            labels = labels.float()
+            
+            # Forward pass
+            outputs = model(inputs)[:,:1].squeeze(1)
 
-            # Get predicted output
-            outputs = model(inputs)
+            # Loss function
             loss = criterion(outputs, labels)
 
             # Accumulate test loss
             test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
             
-            # Accuracy per class
-            for i in range(len(labels)):
-
-                label = labels[i]
-                pred = predicted[i]
-
-                if (label == pred):
-                    n_class_correct[label] += 1
-
-                n_class_samples[label] += 1
+            # Get predicted output
+            probs = torch.sigmoid(outputs) > 0.5
+            correct += probs.eq(labels).sum().item()
+            total += labels.size(0)
+            
 
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
@@ -179,7 +171,6 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
         state = {
             'model': model.state_dict(),
             'accuracy': acc,
-            'class_accuracy': [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))],
             'epoch': epoch
         }
 
@@ -190,7 +181,7 @@ def test(best_acc: float, classes: list, criterion: torch.nn.modules.loss.CrossE
 
     # Return this epoch's test loss, test accuracy and class accuracy
     # return test_loss / (batch_idx+1), acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
-    return acc, [100.0 * n_class_correct[i] / n_class_samples[i] for i in range(len(classes))]
+    return acc
 
 def predict(device: str, model: torch.nn.Module, model_name: str, testloader: torch.utils.data.DataLoader) -> Tuple[list, list]:
     """
@@ -230,19 +221,16 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
         for batch_idx, (inputs, labels) in enumerate(testloader):
 
             inputs, labels = inputs.to(device), labels.to(device)
+            labels = labels.float()
+            
+            # Forward pass
+            outputs = model(inputs)[:,:1].squeeze(1)
 
-            # Get predicted output
-            outputs = model(inputs)
+            # Get predicted probability 
+            probs = torch.sigmoid(outputs).tolist()
 
-            # Get predicted probability and class
-            probs = F.softmax(outputs, dim = 1)
-            _, predicted_class = probs.topk(1, dim = 1)
-            # Since this is a binary classification problem, the metrics used to calculate
-            # the ROC-AUC score need a probability, which is the one associated with the prediction.
-            # However, it's not always the maximum the probability of both classes, rather always the probability
-            # of the same class (even if it's less than the other one), that's why I chose to always take the probability
-            # of the malignant class
-            probs = [elem[1] for elem in probs.tolist()]
+            # Convert probability to class
+            predicted_class = torch.Tensor([1 if elem > 0.5 else 0 for elem in probs])
 
             # Accumulate true, predicted labels and probabilities
             true_labels.extend( labels.data.tolist() )
@@ -257,5 +245,5 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
             progress_bar(batch_idx, len(testloader), ' Acc: %.3f%% (%d/%d)'
                 % (100.*correct/total, correct, total))
 
-    
+
     return true_labels, predicted_labels, probabilities

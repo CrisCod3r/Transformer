@@ -7,7 +7,6 @@ from adabound import AdaBound
 
 # For plotting
 import seaborn as sn
-from numpy import linspace as linspace
 import matplotlib.pyplot as plt
 
 # Sklearn metrics
@@ -15,11 +14,10 @@ from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_
 from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 
 # Models
-import torchvision.models as models
-from models.LeNet5 import *
-from models.AlexNet import *
-from models.IDCNet import *
-
+import torchvision.models as torch_models
+from cnn_models.LeNet5 import *
+from cnn_models.AlexNet import *
+from cnn_models.IDCNet import *
 
 # Utils
 import numpy as np
@@ -34,7 +32,7 @@ from typing import Union, Tuple
 # For PCA projection
 from cv2 import merge
 
-TOTAL_BAR_LENGTH = 70
+TOTAL_BAR_LENGTH = 50
 last_time = time.time()
 begin_time = last_time
 term_width = 100
@@ -190,98 +188,98 @@ def build_model(model_name: str) -> nn.Module:
         return AlexNet()
 
     if model_name == "convnext_tiny":
-        return models.convnext_tiny(pretrained = True)
+        return torch_models.convnext_tiny(pretrained = True)
     
     if model_name == "convnext_small":
-        return models.convnext_small(pretrained = True)
+        return torch_models.convnext_small(pretrained = True)
     
     if model_name == "convnext_base":
-        return models.convnext_base(pretrained = True)
+        return torch_models.convnext_base(pretrained = True)
     
     if model_name == "convnext_large":
-        return models.convnext_large(pretrained = True)
+        return torch_models.convnext_large(pretrained = True)
 
     if model_name == "densenet121":
-        return models.densenet121(pretrained = True)
+        return torch_models.densenet121(pretrained = True)
 
     if model_name == "densenet161":
-        return models.densenet161(pretrained = True)
+        return torch_models.densenet161(pretrained = True)
 
     if model_name == "efficientnetb0":
-        return models.efficientnet_b0(pretrained = True)
+        return torch_models.efficientnet_b0(pretrained = True)
 
     if model_name == "efficientnetb1":
-        return models.efficientnet_b1(pretrained = True)
+        return torch_models.efficientnet_b1(pretrained = True)
 
     if model_name == "efficientnetb2":
-        return models.efficientnet_b2(pretrained = True)
+        return torch_models.efficientnet_b2(pretrained = True)
 
     if model_name == "efficientnetb3":
-        return models.efficientnet_b3(pretrained = True)
+        return torch_models.efficientnet_b3(pretrained = True)
 
     if model_name == "efficientnetb4":
-        return models.efficientnet_b4(pretrained = True)
+        return torch_models.efficientnet_b4(pretrained = True)
 
     if model_name == "efficientnetb5":
-        return models.efficientnet_b5(pretrained = True)
+        return torch_models.efficientnet_b5(pretrained = True)
 
     if model_name == "efficientnetb6":
-        return models.efficientnet_b6(pretrained = True)
+        return torch_models.efficientnet_b6(pretrained = True)
 
     if model_name == "efficientnetb7":
-        return models.efficientnet_b7(pretrained = True)
+        return torch_models.efficientnet_b7(pretrained = True)
     
     # Note: Not pretrained googlenet outputs an error for training loop
     if model_name == "googlenet":
-        return models.googlenet(pretrained = True)
+        return torch_models.googlenet(pretrained = True)
     
     if model_name == "idcnet_tiny":
-        return IDCNet_tiny(stochastic_depth_prob = 0.8, use_downsample = False)
+        return IDCNet_tiny(use_downsample = True)
     
     if model_name == "idcnet_small":
-        return IDCNet_small(stochastic_depth_prob = 0.8, use_downsample = False)
+        return IDCNet_small(use_downsample = True)
 
     if model_name == "idcnet_base":
-        return IDCNet_base(stochastic_depth_prob = 0.8, use_downsample = False)
+        return IDCNet_base(use_downsample = True)
 
     if model_name == "idcnet_large":
-        return IDCNet_large(stochastic_depth_prob = 0.8, use_downsample = False)
+        return IDCNet_large(use_downsample = True)
 
     if model_name == "lenet5":
         return LeNet5()
 
     if model_name == "resnet50":
-        return models.resnet50(pretrained = True)
+        return torch_models.resnet50(pretrained = True)
 
     if model_name == "resnet101":
-        return models.resnet101(pretrained = True)
+        return torch_models.resnet101(pretrained = True)
 
     if model_name == "resnet152":
-        return models.resnet152(pretrained = True)
+        return torch_models.resnet152(pretrained = True)
 
     if model_name == "vit_b_16":
-        return models.vit_b_16(pretrained = True)
+        return torch_models.vit_b_16(pretrained = True)
 
     if model_name == "vit_b_32":
-        return models.vit_b_32(pretrained = True)
+        return torch_models.vit_b_32(pretrained = True)
 
     if model_name == "vit_l_16":
-        return models.vit_l_16(pretrained = True)
+        return torch_models.vit_l_16(pretrained = True)
 
     if model_name == "vit_l_32":
-        return models.vit_l_32(pretrained = True)
+        return torch_models.vit_l_32(pretrained = True)
 
     if model_name == "vgg11":
-        return models.vgg11_bn(pretrained = True)
+        return torch_models.vgg11_bn(pretrained = True)
 
     if model_name == "vgg13":
-        return models.vgg13_bn(pretrained = True)
+        return torch_models.vgg13_bn(pretrained = True)
 
     if model_name == "vgg16":
-        return models.vgg16_bn(pretrained = True)
+        return torch_models.vgg16_bn(pretrained = True)
 
     if model_name == "vgg19":
-        return models.vgg19_bn(pretrained = True)
+        return torch_models.vgg19_bn(pretrained = True)
 
 def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.Optimizer:
 
@@ -300,7 +298,7 @@ def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.
         torch.optim: The optimizer (without initializing the parameters).
     """    
     # Available optimizers
-    optimizers = ['sgd','adam','adabound']
+    optimizers = ['sgd','adam', 'adamw', 'adabound']
 
     if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module')
     if not isinstance(optimizer_name, str): raise TypeError('"optimizer_name" must be a str')
@@ -311,6 +309,9 @@ def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.
 
     if optimizer_name == "adam":
         return torch.optim.Adam(model.parameters(), lr= 1e-3)
+
+    if optimizer_name == "adamw":
+        return torch.optim.AdamW(model.parameters(), lr= 1e-3)
 
     if optimizer_name == "adabound":
         return AdaBound(model.parameters(), lr= 1e-3, final_lr = 0.1)
@@ -343,7 +344,7 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
     if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
     if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
-    if model_name == 'vit_b_16' or model_name == 'vit_l_16':
+    if model_name == 'vit_b_16' or model_name == 'vit_b_32' or model_name == 'vit_l_16' or model_name == 'vit_l_32':
         
         train_transform = transforms.Compose([
 
@@ -361,7 +362,7 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
             transforms.Resize((224,224)),
 
             # Normalize train dataset with its mean and standard deviation
-            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1496, 0.1970, 0.1428))
+            transforms.Normalize((0.7595, 0.5646, 0.6882), (0.1497, 0.1970, 0.1428))
         ])
 
         test_transform = transforms.Compose([
@@ -638,7 +639,7 @@ def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: 
     plt.title('Receiver Operating Characteristic')
 
     # Plot ROC-AUC
-    plt.plot(fpr,tpr,label = file_name + ' AUC = %0.3f' % auc_value, ls = "--")
+    plt.plot(fpr,tpr,label = file_name + ' AUC = %0.3f' % auc_value, ls = 'solid')
 
     # Legend
     plt.legend(loc = 'lower right')

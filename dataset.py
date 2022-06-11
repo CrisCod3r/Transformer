@@ -95,8 +95,8 @@ class BreastCancerDataset(Dataset):
             # Open image with PIL
             img = Image.open(img_path)
 
-        # Apply transforms 
-        tensor = self.transfs(img).float()
+        # Apply transforms  .float()
+        tensor = self.transfs(img)
 
         # Rotate the image.
         if self.angles is not None:
