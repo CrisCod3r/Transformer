@@ -17,7 +17,6 @@ from sklearn.metrics import  balanced_accuracy_score, roc_curve, auc
 import torchvision.models as torch_models
 from cnn_models.LeNet5 import *
 from cnn_models.AlexNet import *
-from cnn_models.IDCNet import *
 
 # Utils
 import numpy as np
@@ -178,7 +177,7 @@ def build_model(model_name: str) -> nn.Module:
 
     # Available models
     net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
-    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet_tiny", "idcnet_small", "idcnet_base", "idcnet_large", "lenet5",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
@@ -232,18 +231,6 @@ def build_model(model_name: str) -> nn.Module:
     # Note: Not pretrained googlenet outputs an error for training loop
     if model_name == "googlenet":
         return torch_models.googlenet(pretrained = True)
-    
-    if model_name == "idcnet_tiny":
-        return IDCNet_tiny(use_downsample = True)
-    
-    if model_name == "idcnet_small":
-        return IDCNet_small(use_downsample = True)
-
-    if model_name == "idcnet_base":
-        return IDCNet_base(use_downsample = True)
-
-    if model_name == "idcnet_large":
-        return IDCNet_large(use_downsample = True)
 
     if model_name == "lenet5":
         return LeNet5()
@@ -337,7 +324,7 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
 
     # Available models
     net_models = ["alexnet", "convnext_tiny", "convnext_small", "convnext_base", "convnext_large", "densenet121", "densenet161", "efficientnetb0", "efficientnetb1", "efficientnetb2",
-    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "idcnet_tiny", "idcnet_small", "idcnet_base", "idcnet_large", "lenet5",
+    "efficientnetb3", "efficientnetb4", "efficientnetb5", "efficientnetb6", "efficientnetb7", "googlenet", "lenet5",
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')

@@ -1,6 +1,7 @@
 # PyTorch
 import torch
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 # Image managing
 from PIL import Image
@@ -25,7 +26,9 @@ class HistopathologyImageMaker:
 
         if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module')
 
-        self.model = model
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+        self.model = model.to(self.device)
 
         self.transforms =  transforms.Compose([
 
@@ -65,6 +68,7 @@ class HistopathologyImageMaker:
         max_x, max_y = 0, 0
         for img in tqdm(img_dir, desc = "Gathering data..."):
             
+            # Get image position
             x, y = img[1:-10].split('y')
             x,y = int(x [:-1]), int(y [:-1])
 
@@ -77,14 +81,18 @@ class HistopathologyImageMaker:
             if y > max_y:
                 max_y = y
 
+        #  Make a blank image of size max_x and max_y
         hist_image = Image.new(mode = 'RGB', size =  (max_x, max_y), color = (255,255,255))
 
         for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
         
-
+            # Open image
             img = Image.open(dir + img_dir[idx])
+
+            # Paste image at its position
             hist_image.paste(img, (x_list[idx], y_list[idx]))
 
+        # Save image
         hist_image.save(dst + ".png")
         return 
 
@@ -116,6 +124,7 @@ class HistopathologyImageMaker:
         max_x, max_y = 0, 0
         for img in tqdm(img_dir, desc = "Gathering data..."):
             
+            # Get image position
             x, y = img[1:-10].split('y')
             x,y = int(x [:-1]), int(y [:-1])
 
@@ -128,19 +137,27 @@ class HistopathologyImageMaker:
             if y > max_y:
                 max_y = y
 
+        # Make a blank image of size max_x and max_y
         hist_image = Image.new(mode = 'RGB', size =  (max_x, max_y), color = (255,255,255))
-        benign_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (255,0,0))
+
+        # Green patch of size 50 x 50
         malignant_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (0,255,0))
 
         for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
         
 
             if img_dir[idx] [-5] == "0":
-                hist_image.paste(benign_patch, (x_list[idx], y_list[idx]))
+
+                # Open image
+                img = Image.open(dir + img_dir[idx])
+
+                # Paste image at its position
+                hist_image.paste(img, (x_list[idx], y_list[idx]))
 
             else:
                 hist_image.paste(malignant_patch, (x_list[idx], y_list[idx]))
 
+        # Save image
         hist_image.save(dst + ".png")
         return 
 
@@ -171,6 +188,7 @@ class HistopathologyImageMaker:
         max_x, max_y = 0, 0
         for img in tqdm(img_dir, desc = "Gathering data..."):
             
+            # Get image position
             x, y = img[1:-10].split('y')
             x,y = int(x [:-1]), int(y [:-1])
 
@@ -183,8 +201,10 @@ class HistopathologyImageMaker:
             if y > max_y:
                 max_y = y
 
+        # Make a blank image of size max_x and max_y
         hist_image = Image.new(mode = 'RGB', size =  (max_x, max_y), color = (255,255,255))
-        benign_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (255,0,0))
+
+        # Green patch of size 50 x 50
         malignant_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (0,255,0))
 
         self.model.eval()
@@ -201,13 +221,15 @@ class HistopathologyImageMaker:
                 tensor = tensor[None]
 
                 # Predict label
-                output = self.model(tensor)
-                _, predicted = output.max(1)
-                predicted = predicted.item()
+                output = self.model(tensor)[:,:1].squeeze(1)
+
+                predicted = 1 if torch.sigmoid(output) > 0.5 else 0
 
                 # Prediction == Benign
                 if predicted == 0:
-                    hist_image.paste(benign_patch, (x_list[idx], y_list[idx]))
+
+                    # Paste image at its position
+                    hist_image.paste(img, (x_list[idx], y_list[idx]))
 
                 # Prediction == Malignant
                 else:

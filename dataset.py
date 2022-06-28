@@ -47,7 +47,7 @@ class BreastCancerDataset(Dataset):
         if not ( pca is None or isinstance(pca, dict) ): raise TypeError('"pca" must be a dictionary or None.')
 
         # Image list
-        self.image_list = glob.glob(data_dir + '*')
+        self.image_list = glob.glob(data_dir + '*') [:10]
 
         # Number of images
         self.data_len = len(self.image_list)

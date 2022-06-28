@@ -190,7 +190,7 @@ def setup_test(args):
 
 
     # Test data loader
-    testloader = DataLoader(dataset = test_data, batch_size = args.batch_size, shuffle = False, transform = test_transform)
+    testloader = DataLoader(dataset = test_data, batch_size = args.batch_size, shuffle = False)
 
     return 
 
@@ -249,7 +249,7 @@ def test_model():
 
     # Obtain predictions
     true_labels, predicted_labels, probabilities = predict(device, model, model_name, testloader)
-
+    
     # Compute and plot metrics
     precision, recall, specificity, f_score, bac = compute_and_plot_stats(true_labels, predicted_labels, probabilities, file_name)
     print("Precision:", precision)
@@ -259,9 +259,9 @@ def test_model():
     print("Balanced Accuracy:", bac)
 
     # Confidence interval
-    interval = interval95( best_accuracy / 100, test_samples)
+    interval = interval95( bac / 100, test_samples)
     print("Confidence interval (95%):")
-    print(str(best_accuracy) + ' +- ' + str(interval * 100))
+    print(str(bac) + ' +- ' + str(interval * 100))
 
 
 
