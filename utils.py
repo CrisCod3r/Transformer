@@ -181,7 +181,7 @@ def build_model(model_name: str) -> nn.Module:
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
-    if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
+    if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ', '.join(net_models))
 
     if model_name == "alexnet":
         return AlexNet()
@@ -289,7 +289,7 @@ def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.
 
     if not isinstance(model, torch.nn.Module): raise TypeError('"model" must be a torch.nn.Module')
     if not isinstance(optimizer_name, str): raise TypeError('"optimizer_name" must be a str')
-    if optimizer_name not in optimizers: raise ValueError('"optimizer_name" must be one of the available models: ' + ','.join(optimizers))
+    if optimizer_name not in optimizers: raise ValueError('"optimizer_name" must be one of the available models: ' + ', '.join(optimizers))
 
     if optimizer_name == "sgd":
         return torch.optim.SGD(model.parameters(), lr= 1e-3, momentum = 0.9)
@@ -328,7 +328,7 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
      "resnet50",  "resnet101",  "resnet152", "vit_b_16", "vit_b_32", "vit_l_16", "vit_l_32", "vgg11", "vgg13", "vgg16","vgg19" ]
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
-    if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ','.join(net_models))
+    if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ', '.join(net_models))
     if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
     if model_name == 'vit_b_16' or model_name == 'vit_b_32' or model_name == 'vit_l_16' or model_name == 'vit_l_32':

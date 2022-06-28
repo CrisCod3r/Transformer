@@ -177,7 +177,13 @@ def setup_test(args):
     # Model
     print('Building model..')
     model = build_model(model_name)
-    model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth')['model'] )
+
+    if torch.cuda.is_available():
+        model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth')['model'] )
+    
+    else:
+        model.load_state_dict( torch.load('./pretrained/' + file_name + '.pth', map_location=torch.device('cpu'))['model'] )
+        
     model.to(device)
 
     _, test_transform = build_transforms(model_name, pca_components is not None)
