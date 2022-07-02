@@ -42,7 +42,7 @@ class BreastCancerDataset(Dataset):
         if not ( angles is None or isinstance(angles, list) ): raise TypeError('"angles" must be a list of integer or None.')
 
         # Image list
-        self.image_list = glob.glob(data_dir + '*') [:10]
+        self.image_list = glob.glob(data_dir + '*')
 
         # Number of images
         self.data_len = len(self.image_list)
