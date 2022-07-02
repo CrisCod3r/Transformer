@@ -304,7 +304,7 @@ def build_optimizer(model: torch.nn.Module, optimizer_name: str) -> torch.optim.
         return AdaBound(model.parameters(), lr= 1e-3, final_lr = 0.1)
 
 
-def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, transforms.Compose]:
+def build_transforms(model_name:str) -> Tuple[transforms.Compose, transforms.Compose]:
 
     """
     Function that builds the transforms to apply to the data based on the provided name.
@@ -329,7 +329,6 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
 
     if not isinstance(model_name, str): raise TypeError('"model_name" must be a str')
     if model_name not in net_models: raise ValueError('"model_name" must be one of the available models: ' + ', '.join(net_models))
-    if not type(pca) == bool: raise TypeError('"pca" must be a boolean (True or False)')
 
     if model_name == 'vit_b_16' or model_name == 'vit_b_32' or model_name == 'vit_l_16' or model_name == 'vit_l_32':
         
@@ -395,81 +394,6 @@ def build_transforms(model_name:str, pca:bool) -> Tuple[transforms.Compose, tran
 
 
     return train_transform, test_transform
-
-
-def load_pca_matrix(n_components: int) -> dict:
-
-    """
-    Loads the PCA matrix.
-
-    Args:
-        n_components (int): The number of components to keep.
-
-    Raises:
-        ValueError: The given number of components is not available.
-
-    Returns:
-        dict: Dictionary with the PCA matrix for each of the 3 channels
-    """    
-
-    # Available components
-    comp = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 1250, 1500, 2000, 2500]
-
-    if n_components not in comp: raise ValueError('"n_components" must be one of the available components: ' + ','.join(comp))
-
-    pca = {'red': None,
-           'green': None,
-           'blue': None}
-
-    # Load pca matrix
-    pca['red'] = pickle.load(open('data_projection/pca_red_' + str(n_components) + '.p','rb'))
-    pca['green'] = pickle.load(open('data_projection/pca_green_' + str(n_components) + '.p','rb'))
-    pca['blue'] = pickle.load(open('data_projection/pca_blue_' + str(n_components) + '.p','rb'))
-
-    return pca
-
-def apply_pca(red: np.ndarray, green: np.ndarray, blue: np.ndarray, pca:dict) -> np.ndarray:
-
-    """
-    Applies the PCA matrix to the given data.
-
-    Args:
-        red (np.ndarray): The red channel.
-        green (np.ndarray): The green channel.
-        blue (np.ndarray): The blue channel.
-        pca (dict): The PCA matrix.
-
-    Raises:
-        TypeError: The given data is not a numpy array.
-
-    Returns:
-        np.ndarray: The projected data.
-    """    
-
-    if not isinstance(red, np.ndarray): raise TypeError('"red" must be a numpy ndarray')
-    if not isinstance(green, np.ndarray): raise TypeError('"green" must be a numpy ndarray')
-    if not isinstance(blue, np.ndarray): raise TypeError('"blue" must be a numpy ndarray')
-    
-    # Project data to lower dimensions
-    new_red = pca['red'].transform([ red.flatten() ])
-    new_green = pca['green'].transform([ green.flatten() ])
-    new_blue = pca['blue'].transform([ blue.flatten() ])
-
-    # Reconstruct data
-    new_red = pca['red'].inverse_transform(new_red)
-    new_green = pca['green'].inverse_transform(new_green)
-    new_blue = pca['blue'].inverse_transform(new_blue)
-
-    # Reshape into an image
-    new_red = new_red.reshape(50,50)
-    new_green = new_green.reshape(50,50)
-    new_blue = new_blue.reshape(50,50)
-
-    # Merge channels
-    img = (merge((new_blue, new_green, new_red)))
-
-
-    return img
 
 def interval95(acc:float, n_data:int) -> float:
 
@@ -632,9 +556,9 @@ def plot_roc_auc(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, file_name: 
     plt.legend(loc = 'lower right')
 
     # Limits of the X and Y axis
-    plt.plot([0, 1], [0, 1])
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
+    plt.plot([-0.004, 1.004], [-0.004, 1.004])
+    plt.xlim([-0.004, 1.004])
+    plt.ylim([-0.004, 1.004])
 
     # X and Y axis labels
     plt.ylabel('True Positive Rate')

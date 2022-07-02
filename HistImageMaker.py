@@ -84,7 +84,7 @@ class HistopathologyImageMaker:
         #  Make a blank image of size max_x and max_y
         hist_image = Image.new(mode = 'RGB', size =  (max_x, max_y), color = (255,255,255))
 
-        for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
+        for idx in tqdm(range(len(img_dir)), desc = "Building original image..."):
         
             # Open image
             img = Image.open(dir + img_dir[idx])
@@ -143,7 +143,7 @@ class HistopathologyImageMaker:
         # Green patch of size 50 x 50
         malignant_patch = Image.new(mode = 'RGB', size =  (50, 50), color = (0,255,0))
 
-        for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
+        for idx in tqdm(range(len(img_dir)), desc = "Building true labeled image..."):
         
 
             if img_dir[idx] [-5] == "0":
@@ -209,13 +209,13 @@ class HistopathologyImageMaker:
 
         self.model.eval()
         with torch.no_grad():
-            for idx in tqdm(range(len(img_dir)), desc = "Building image..."):
+            for idx in tqdm(range(len(img_dir)), desc = "Building predicted image..."):
                 
                 # Open image
                 img = Image.open(dir + img_dir[idx])
 
                 # Transform to tensor
-                tensor = self.transforms(img)
+                tensor = self.transforms(img).to(self.device)
 
                 # Add an extra dimension to allow forwarding through the model
                 tensor = tensor[None]

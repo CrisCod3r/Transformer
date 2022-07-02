@@ -230,7 +230,7 @@ def predict(device: str, model: torch.nn.Module, model_name: str, testloader: to
             probs = torch.sigmoid(outputs).tolist()
 
             # Convert probability to class
-            predicted_class = torch.Tensor([1 if elem > 0.5 else 0 for elem in probs])
+            predicted_class = torch.Tensor([1 if elem > 0.5 else 0 for elem in probs]).to(device)
 
             # Accumulate true, predicted labels and probabilities
             true_labels.extend( labels.data.tolist() )

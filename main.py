@@ -10,7 +10,7 @@ from dataset import BreastCancerDataset
 from train import *
 
 # Utils
-from utils import interval95, compute_and_plot_stats, build_optimizer, build_model, build_transforms, load_pca_matrix
+from utils import interval95, compute_and_plot_stats, build_optimizer, build_model, build_transforms
 
 # Others
 import argparse as arg
@@ -45,9 +45,6 @@ parser.add_argument('-t', '--test', action= 'store_true', dest = 'test', default
 # Name used for the files generated as output (plots)
 parser.add_argument('-na', '--name', dest = 'file_name', default="output", type=str, help= 'Name used for the files generated as output (plots)')
 
-# Number of components for PCA projection
-parser.add_argument('-p', '--pca', dest = 'pca_components', default=None, type=int, help= 'Number of components for PCA projection. If not used, no PCA projection will be applied')
-
 
 # --------------- Global variables ---------------
 
@@ -71,9 +68,6 @@ model, optimizer = None,None
 test_samples = 0
 file_name = None
 
-# PCA Matrix
-pca = None
-
 # ---------------------------------------------
 def set_up_training(args):
     """
@@ -81,7 +75,7 @@ def set_up_training(args):
     Args:
         args: Arguments passed from the argument parser
     """
-    global best_accuracy, best_class_accuracy, file_name, n_components, model_name, model, optimizer, pca, trainloader, testloader, scheduler, test_samples
+    global best_accuracy, best_class_accuracy, file_name, n_components, model_name, model, optimizer, trainloader, testloader, scheduler, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
@@ -89,8 +83,6 @@ def set_up_training(args):
     # Obtain output file name
     file_name = args.file_name
     
-    # Obtain number of components for PCA dimensionality reduction
-    pca_components = args.pca_components
 
     # Model
     print('Building model...')
@@ -121,21 +113,17 @@ def set_up_training(args):
 
     # Data augmentation
     print("Loading data augmentation transforms...")
-    train_transform, test_transform = build_transforms(model_name, pca_components is not None)
+    train_transform, test_transform = build_transforms(model_name)
 
-    # Load PCA matrix
-    if pca_components is not None:
-        print("Loading PCA matrix...")
-        pca = load_pca_matrix(pca_components)    
 
     # Get training dataset (122400 images) with rotations
     print("Loading training dataset...")                                                                                          
-    training_data = BreastCancerDataset(args.training_path + '/', transfs = train_transform, angles = list(range(-90,91,15)), pca = pca)
+    training_data = BreastCancerDataset(args.training_path + '/', transfs = train_transform, angles = list(range(-90,91,15)))
     print("Loaded %d images" % len(training_data))
 
     # Get test dataset (13600 images)
     print("Loading test dataset...")
-    test_data = BreastCancerDataset(args.test_path + '/', transfs = test_transform, pca = pca)
+    test_data = BreastCancerDataset(args.test_path + '/', transfs = test_transform)
     print("Loaded %d images" % len(test_data))
 
     test_samples = len(test_data)
@@ -158,7 +146,7 @@ def setup_test(args):
         device: Device used for traning ('cuda' or 'cpu')
         args: Arguments passed from the argument parser
     """
-    global file_name, model_name, model, pca, testloader, test_samples
+    global file_name, model_name, model, testloader, test_samples
 
     # Obtain model name
     model_name = args.net.lower()
@@ -166,14 +154,6 @@ def setup_test(args):
     # Obtain output file name
     file_name = args.file_name
     
-    # Obtain number of components for PCA dimensionality reduction
-    pca_components = args.pca_components
-
-    # Load PCA matrix
-    if pca_components is not None:
-        print("Loading PCA matrix...")
-        pca = load_pca_matrix(pca_components)    
-
     # Model
     print('Building model..')
     model = build_model(model_name)
@@ -186,11 +166,11 @@ def setup_test(args):
         
     model.to(device)
 
-    _, test_transform = build_transforms(model_name, pca_components is not None)
+    _, test_transform = build_transforms(model_name)
 
     # Get test dataset (15110 images)
     print("Loading test dataset...")
-    test_data = BreastCancerDataset(args.test_path, transfs = test_transform, pca = pca)
+    test_data = BreastCancerDataset(args.test_path, transfs = test_transform)
     print("Loaded %d images" % len(test_data))
     test_samples = len(test_data)
 
@@ -265,7 +245,7 @@ def test_model():
     print("Balanced Accuracy:", bac)
 
     # Confidence interval
-    interval = interval95( bac / 100, test_samples)
+    interval = interval95( bac * 100 / 100, test_samples)
     print("Confidence interval (95%):")
     print(str(bac) + ' +- ' + str(interval * 100))
 
