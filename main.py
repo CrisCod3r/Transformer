@@ -155,7 +155,7 @@ def setup_test(args):
     file_name = args.file_name
     
     # Model
-    print('Building model..')
+    print('Building model...')
     model = build_model(model_name)
 
     if torch.cuda.is_available():

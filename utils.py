@@ -28,9 +28,6 @@ import time
 import math
 from typing import Union, Tuple
 
-# For PCA projection
-from cv2 import merge
-
 TOTAL_BAR_LENGTH = 50
 last_time = time.time()
 begin_time = last_time
